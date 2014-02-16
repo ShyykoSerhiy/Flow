@@ -10,10 +10,25 @@ import java.util.List;
  * Time: 14:18
  */
 public abstract class Shape {
+    /**
+     * List of points which describe shape
+     */
     protected List<Point> listOfPoints;
+    /**
+     * All points
+     */
     protected List<Point> allPoints;
+    /**
+     * Kolokation points
+     */
     protected List<Point> kolokPoints;
+    /**
+     * Normals in kolocation points
+     */
     protected List<Point> normal;
+    /**
+     * Points from which flying points will take off
+     */
     protected List<Point> pointsOfSeparation;
 
     public List<Point> getListOfPoints() {

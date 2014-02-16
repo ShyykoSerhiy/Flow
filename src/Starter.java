@@ -25,8 +25,8 @@ public class Starter extends PApplet {
     Solver solver;
     final int width = 640;
     final int height = 640;
-    boolean toDrawPhi = false;
-    boolean toDrawVectors = false;
+    boolean toDrawPhi = true;
+    boolean toDrawVectors = true;
     // Figure figure;
     // Solver solver;
 
@@ -59,9 +59,10 @@ public class Starter extends PApplet {
         if (toDrawPhi) {
             shapeDrawer.drawPhi();
         }
-        if (toDrawVectors){
+        if (toDrawVectors) {
             shapeDrawer.drawVectors();
         }
+        shapeDrawer.drawFlyingPoints();
         coordinateSystem.draw();
         shapeDrawer.draw();
         popMatrix();
@@ -87,17 +88,20 @@ public class Starter extends PApplet {
         } else if (key == 'z') {
             zoom -= 0.1;
         } else if (key == 's') {
+            solver.movePoints();
             solver.solve();
+            shapeDrawer.computePhi();
+            shapeDrawer.computeVectors();
             System.out.println("solved");
         } else if (key == 'p') {
             shapeDrawer.computePhi();
             System.out.println("phi computed");
         } else if (key == 'l') {
             toDrawPhi = !toDrawPhi;
-        } else if (key == 'v'){
+        } else if (key == 'v') {
             shapeDrawer.computeVectors();
             System.out.println("computeVectors computed");
-        } else if (key == 'b'){
+        } else if (key == 'b') {
             toDrawVectors = !toDrawVectors;
         }
         zoom = constrain(zoom, 0, 100);

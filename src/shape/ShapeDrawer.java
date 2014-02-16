@@ -29,6 +29,9 @@ public class ShapeDrawer {
         this.shape = shape;
         this.drawer = drawer;
         this.solver = solver;
+
+        phiValues =new double[0][0];
+        vectorValues = new Point[0][0];
     }
 
     public void draw() {
@@ -37,7 +40,7 @@ public class ShapeDrawer {
         drawPoints(shape.getListOfPoints(), GREEN);
     }
 
-    private void drawPoints(List<Point> points, Color color) {
+    private void drawPoints(List<? extends Point> points, Color color) {
         drawer.strokeWeight(POINT_SIZE);
         drawer.stroke(color.getR(), color.getG(), color.getB());
         for (Point point : points) {
@@ -62,7 +65,7 @@ public class ShapeDrawer {
         for (int i = 0; i < phiValues.length; i+= 10) {
             for (int j = 0; j < phiValues[i].length; j+= 10) {
                 Point point = helper.getCoordinatePoint(new Point(i, j));
-                double phi = solver.getPsi(point);
+                double phi = solver.getPhi(point);
                 if (phi < minPhi) {
                     minPhi = phi;
                 }
@@ -92,7 +95,7 @@ public class ShapeDrawer {
         vectorValues = new Point[helper.getWidth()][helper.getHeight()];
         for (int i = 0; i < vectorValues.length; i += 10) {
             for (int j = 0; j < vectorValues[i].length; j += 10) {
-                vectorValues[i][j] = solver.computeV(helper.getCoordinatePoint(new Point(i, j)));
+                vectorValues[i][j] = solver.computeV(helper.getCoordinatePoint(new Point(i, j))).multiply(5);
             }
         }
     }
@@ -107,5 +110,9 @@ public class ShapeDrawer {
                 drawer.line((float) i, (float) j, (float) vector.getX(), (float) vector.getY());
             }
         }
+    }
+
+    public void drawFlyingPoints() {
+        drawPoints(solver.getFlyingPointsWithHama(), BLUE);
     }
 }

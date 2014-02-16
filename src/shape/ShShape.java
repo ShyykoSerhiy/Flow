@@ -27,8 +27,8 @@ public class ShShape extends Shape {
         ));
         pointsOfSeparation = new ArrayList<Point>(5);
         pointsOfSeparation.addAll(Arrays.asList(
-                new Point(0.8f, 0.2f), new Point(0.8f, 0.8f), new Point(0.2f, 0.8f), new Point(0.2f, 0.2f),
-                new Point(0.5f, 0.2f)
+                listOfPoints.get(0), listOfPoints.get(1), listOfPoints.get(2), listOfPoints.get(3),
+                listOfPoints.get(4)
         ));
 
         kolokPoints = new ArrayList<Point>();

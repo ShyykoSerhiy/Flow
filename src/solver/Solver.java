@@ -1,12 +1,10 @@
 package solver;
 
 import draw.Point;
+import draw.PointWithHamma;
 import shape.Shape;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static java.lang.Math.*;
 
@@ -27,7 +25,7 @@ public class Solver {
      * Hamma_j
      */
     private List<Double> hamma;
-    private double hamma0;
+    private List<PointWithHamma> flyingPointsWithHama;
     private double alpha;
 
     public Solver(Shape shape) {
@@ -36,7 +34,11 @@ public class Solver {
         this.vEternity = new Point(cos(alpha), sin(alpha)); //todo move to constructor parameters
 
         hamma = new ArrayList<Double>(Collections.nCopies(shape.getKolokPoints().size(), 0.0));
-        hamma0 = 10; //todo move to constructor parameters
+        flyingPointsWithHama = new LinkedList<PointWithHamma>();
+    }
+
+    public List<PointWithHamma> getFlyingPointsWithHama() {
+        return flyingPointsWithHama;
     }
 
     public void solve() {
@@ -45,21 +47,58 @@ public class Solver {
         int amountOfCollocPoints = shape.getKolokPoints().size();
 
         for (int i = 0; i < amountOfCollocPoints; i++) {
-            Point collocPoint = shape.getKolokPoints().get(i);
+            Point kolokPoint = shape.getKolokPoints().get(i);
+            Point normalInKolocPoint = shape.getNormal().get(i);
+
             List<Double> rowOfMatrix = new ArrayList<Double>(amountOfCollocPoints);
             for (int j = 0; j < amountOfCollocPoints + 1; j++) {
-                Point vJ = computeVj(collocPoint, shape.getAllPoints().get(j));
-                double coefficientToAdd = vJ.multiply(shape.getNormal().get(i));
+                Point vJ = computeVj(kolokPoint, shape.getAllPoints().get(j));
+                double coefficientToAdd = vJ.multiply(normalInKolocPoint);
                 rowOfMatrix.add(coefficientToAdd);
             }
             matrix.add(rowOfMatrix);
-            rightPartOfSystem.add(-vEternity.multiply(shape.getNormal().get(i)));
+
+            double rightPart = -vEternity.multiply(shape.getNormal().get(i));
+            for (PointWithHamma pointWithHamma : flyingPointsWithHama) {
+                rightPart -= pointWithHamma.getHamma() * computeVj(kolokPoint, pointWithHamma).multiply(normalInKolocPoint);
+            }
+
+            rightPartOfSystem.add(rightPart);
         }
+
         matrix.add(new ArrayList<Double>(Collections.nCopies(amountOfCollocPoints + 1, 1.0)));
-        rightPartOfSystem.add(hamma0);
+        double lastRightPart = 0;
+        for (PointWithHamma pointWithHamma : flyingPointsWithHama) {
+            lastRightPart -= pointWithHamma.getHamma();
+        }
+
+        rightPartOfSystem.add(lastRightPart);
 
         hamma = gaussMethod(matrix, rightPartOfSystem);
         System.out.println(hamma);
+
+        // adding flying points (pointsWithHamma)
+        for (Point point : shape.getPointsOfSeparation()) {
+            int hamaIndex = shape.getAllPoints().indexOf(point);
+            PointWithHamma flyingPoint = new PointWithHamma(point.getX(), point.getY(), hamma.get(hamaIndex));
+            flyingPointsWithHama.add(flyingPoint);
+        }
+    }
+
+    /**
+     * Moving flying points with intersection check
+     */
+    public void movePoints() {
+        for (int i = 0; i < flyingPointsWithHama.size(); i++) {
+            PointWithHamma oldPoint = flyingPointsWithHama.get(i);
+            Point newPointCoordinate = null;
+            newPointCoordinate = computeV(oldPoint).multiply(0.02).add(oldPoint);
+            newPointCoordinate = reflectIsCrossCarcases(oldPoint, newPointCoordinate);
+
+            flyingPointsWithHama.set(i, new PointWithHamma(newPointCoordinate.getX(), newPointCoordinate.getY(),
+                    oldPoint.getHamma()));
+            //todo check for intersection and away from segmentation
+        }
     }
 
     public double getPhi(Point point) {
@@ -83,6 +122,9 @@ public class Solver {
         for (int i = 0; i < hamma.size(); i++) {
             sum += hamma.get(i) * log(computeRj(point, shape.getAllPoints().get(i)));
         }
+        for (int i = 0; i < flyingPointsWithHama.size(); i++) {
+            sum += flyingPointsWithHama.get(i).getHamma() * log(computeRj(point, flyingPointsWithHama.get(i)));
+        }
         toReturn -= 1 / (2 * PI) * sum;
         return toReturn;
     }
@@ -98,6 +140,9 @@ public class Solver {
         Point sum = vEternity.add(new Point(0, 0));
         for (int i = 0; i < hamma.size(); i++) {
             sum = sum.add(computeVj(point, shape.getAllPoints().get(i)).multiply(hamma.get(i)));
+        }
+        for (int i = 0; i < flyingPointsWithHama.size(); i++) {
+            sum = sum.add(computeVj(point, flyingPointsWithHama.get(i)).multiply(flyingPointsWithHama.get(i).getHamma()));
         }
         return sum;
     }
@@ -229,5 +274,24 @@ public class Solver {
         }
         b[0] /= a[0][0];
         a[0][0] = 1;
+    }
+
+    /**
+     * Reflects new point if it crosses the carcases
+     * @param oldPoint
+     * @param newPoint
+     * @return
+     */
+    private Point reflectIsCrossCarcases(Point oldPoint, Point newPoint) {
+        boolean lResult = true;
+        int j = 0;
+        while (j < shape.getAllPoints().size() - 1) {
+            if (Point.intersects(newPoint, oldPoint, shape.getAllPoints().get(j), shape.getAllPoints().get(j + 1))) {
+                newPoint = Point.reflect(shape.getAllPoints().get(j), shape.getAllPoints().get(j + 1), newPoint);
+                j = 0;
+                lResult = false;
+            } else j++;
+        }
+        return newPoint;
     }
 }
