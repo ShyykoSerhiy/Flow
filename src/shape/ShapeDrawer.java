@@ -54,18 +54,20 @@ public class ShapeDrawer {
     }
 
 
+    //todo move to another class
     private double[][] phiValues;
     private ColorManager colorManager;
+    private static final int POINT_STEP = 5;
 
     public void computePhi() {
         phiValues = new double[helper.getWidth()][helper.getHeight()];
 
         double maxPhi = Double.NEGATIVE_INFINITY;
         double minPhi = Double.POSITIVE_INFINITY;
-        for (int i = 0; i < phiValues.length; i+= 10) {
-            for (int j = 0; j < phiValues[i].length; j+= 10) {
+        for (int i = 0; i < phiValues.length; i+= POINT_STEP) {
+            for (int j = 0; j < phiValues[i].length; j+= POINT_STEP) {
                 Point point = helper.getCoordinatePoint(new Point(i, j));
-                double phi = solver.getPhi(point);
+                double phi = solver.getPhiDipol(point);
                 if (phi < minPhi) {
                     minPhi = phi;
                 }
@@ -75,15 +77,15 @@ public class ShapeDrawer {
                 phiValues[i][j] = phi;
             }
         }
-        colorManager = new ColorManager(minPhi, maxPhi, new Color(10, 10, 10), new Color(250, 130, 10));
+        colorManager = new ColorManager(minPhi, maxPhi, new Color(0, 0, 0), new Color(250, 250, 250));
     }
 
     public void drawPhi() {
-        for (int i = 0; i < phiValues.length; i += 10) {
-            for (int j = 0; j < phiValues[i].length; j += 10) {
+        drawer.strokeWeight(POINT_STEP * 2);
+        for (int i = 0; i < phiValues.length; i += POINT_STEP) {
+            for (int j = 0; j < phiValues[i].length; j += POINT_STEP) {
                 Color color = colorManager.getColor(phiValues[i][j]);
                 drawer.stroke(color.getR(), color.getG(), color.getB());
-                drawer.strokeWeight(POINT_SIZE * 2);
                 drawer.point((float) i, (float) j);
             }
         }
