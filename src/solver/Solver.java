@@ -24,10 +24,9 @@ public class Solver {
     private Point vEternity;
 
     /**
-     * Hamma_j
+     * Points
      */
-    private List<Double> hamma;
-    private List<PointWithHamma> flyingPointsWithHama;
+    private List<List<PointWithHamma>> flyingPointsWithHama;
     private double alpha;
 
     public Solver(Shape shape) {
@@ -35,11 +34,10 @@ public class Solver {
         alpha = 0; //todo
         this.vEternity = new Point(cos(alpha), sin(alpha)); //todo move to constructor parameters
 
-        hamma = new ArrayList<Double>(Collections.nCopies(shape.getKolokPoints().size(), 0.0));
-        flyingPointsWithHama = new LinkedList<PointWithHamma>();
+        flyingPointsWithHama = new ArrayList<List<PointWithHamma>>();
     }
 
-    public List<PointWithHamma> getFlyingPointsWithHama() {
+    public List<List<PointWithHamma>> getFlyingPointsWithHama() {
         return flyingPointsWithHama;
     }
 
@@ -61,8 +59,10 @@ public class Solver {
             matrix.add(rowOfMatrix);
 
             double rightPart = -vEternity.multiply(shape.getNormal().get(i));
-            for (PointWithHamma pointWithHamma : flyingPointsWithHama) {
-                rightPart -= pointWithHamma.getHamma() * computeVj(kolokPoint, pointWithHamma).multiply(normalInKolocPoint);
+            for (List<PointWithHamma> list : flyingPointsWithHama) {
+                for (PointWithHamma pointWithHamma : list) {
+                    rightPart -= pointWithHamma.getHamma() * computeVj(kolokPoint, pointWithHamma).multiply(normalInKolocPoint);
+                }
             }
 
             rightPartOfSystem.add(rightPart);
@@ -70,19 +70,23 @@ public class Solver {
 
         matrix.add(new ArrayList<Double>(Collections.nCopies(amountOfCollocPoints + 1, 1.0)));
         double lastRightPart = 0;
-        for (PointWithHamma pointWithHamma : flyingPointsWithHama) {
-            lastRightPart -= pointWithHamma.getHamma();
+        for (List<PointWithHamma> list : flyingPointsWithHama) {
+            for (PointWithHamma pointWithHamma : list) {
+                lastRightPart -= pointWithHamma.getHamma();
+            }
         }
+
 
         rightPartOfSystem.add(lastRightPart);
 
-        hamma = gaussMethod(matrix, rightPartOfSystem);
-        System.out.println(hamma);
+        List<Double> hamma = gaussMethod(matrix, rightPartOfSystem);
+        for (int i = 0; i < hamma.size(); i++) {
+            shape.getAllPoints().get(i).setHamma(hamma.get(i));
+        }
 
         // adding flying points (pointsWithHamma)
-        for (Point point : shape.getPointsOfSeparation()) {
-            int hamaIndex = shape.getAllPoints().indexOf(point);
-            PointWithHamma flyingPoint = new PointWithHamma(point.getX(), point.getY(), hamma.get(hamaIndex));
+        for (PointWithHamma pointWithHamma : shape.getPointsOfSeparation()) {
+            PointWithHamma flyingPoint = new PointWithHamma(pointWithHamma.getX(), pointWithHamma.getY(), pointWithHamma.getHamma());
             flyingPointsWithHama.add(flyingPoint);
         }
     }
@@ -91,11 +95,28 @@ public class Solver {
      * Moving flying points with intersection check
      */
     public void movePoints() {
+        if (flyingPointsWithHama.isEmpty()) {
+            return;
+        }
+
+        double maxSpeed = 0;
+        for (int i = flyingPointsWithHama.size() - 1;
+             i > flyingPointsWithHama.size() - shape.getPointsOfSeparation().size() - 1; i--) {
+            PointWithHamma pointWithHamma = flyingPointsWithHama.get(i);
+            Point speed = computeV(pointWithHamma);
+            double speedDouble = Point.distance(speed, new Point(0, 0));
+            if (maxSpeed < speedDouble) {
+                maxSpeed = speedDouble;
+            }
+        }
+        double time = shape.getDelta() / maxSpeed;
+
         for (int i = 0; i < flyingPointsWithHama.size(); i++) {
             PointWithHamma oldPoint = flyingPointsWithHama.get(i);
             Point newPointCoordinate = null;
-            newPointCoordinate = computeV(oldPoint).multiply(0.02).add(oldPoint);
+            newPointCoordinate = computeV(oldPoint).multiply(time).add(oldPoint);
             newPointCoordinate = reflectIsCrossCarcases(oldPoint, newPointCoordinate);
+            newPointCoordinate = awayFromSegmentationPoint(newPointCoordinate);
 
             flyingPointsWithHama.set(i, new PointWithHamma(newPointCoordinate.getX(), newPointCoordinate.getY(),
                     oldPoint.getHamma()));
@@ -107,241 +128,145 @@ public class Solver {
         double toReturn = point.getX() * cos(alpha) + point.getY() * sin(alpha);
 
         double sum = 0;
-        for (int i = 0; i < hamma.size(); i++) {
-            sum += hamma.get(i) * atan2(
+        for (int i = 0; i < shape.getAllPoints().size(); i++) {
+            sum += shape.getAllPoints().get(i).getHamma() * atan2(
                     point.getY() - shape.getAllPoints().get(i).getY(),
-                    point.getY() - shape.getAllPoints().get(i).getY()
+                    point.getX() - shape.getAllPoints().get(i).getX()
+            );
+        }
+
+        for (PointWithHamma pointWithHamma : flyingPointsWithHama) {
+            sum += pointWithHamma.getHamma() * atan2(
+                    point.getY() - pointWithHamma.getY(),
+                    point.getX() - pointWithHamma.getX()
             );
         }
         toReturn += 1 / (2 * PI) * sum;
         return toReturn;
     }
 
-    public double getPhiDipol(Point point) {       //todo refactor to use two methods : compute for 
-        double toReturn = point.getX() * cos(alpha) + point.getY() * sin(alpha);
-
+    public Pair<Double> computeForFlyingPoints(double partialHama, Point point, int firstFlyingPointNumber,
+                                               int numberOfLastPoint, int amountOfPointsOfSeparation) {
         Point firstStrangeValue = new Point(0, 0);
         Point secondStrangeValue = new Point(0, 0);
+        double toReturn = 0;
+
+        for (int i = firstFlyingPointNumber; i < flyingPointsWithHama.size(); i += amountOfPointsOfSeparation) {
+            PointWithHamma flyingPoint = flyingPointsWithHama.get(i);
+            partialHama += flyingPoint.getHamma();
+
+            if (i + amountOfPointsOfSeparation < flyingPointsWithHama.size()) {
+                Point neighborPoint = flyingPointsWithHama.get(i + amountOfPointsOfSeparation);
+                firstStrangeValue = neighborPoint.minus(flyingPoint);
+            } else {
+                Point neighborPoint = shape.getListOfPoints().get(numberOfLastPoint);
+                firstStrangeValue = neighborPoint.minus(flyingPoint);
+            }
+
+            secondStrangeValue = point.minus(flyingPoint);
+
+            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
+            strangeR = strangeR < DELTA ? DELTA : strangeR;
+
+            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
+                    / (strangeR * (2 * PI));
+            strangeProd *= partialHama;
+
+            toReturn += strangeProd;
+        }
+
+        return new Pair<Double>(toReturn, partialHama);
+    }
+
+    public Pair<Double> computeForContourPoints(double partialHama, Point point,
+                                                int firstPointNumber, int lastPointNumber) {
+        Point firstStrangeValue = new Point(0, 0);
+        Point secondStrangeValue = new Point(0, 0);
+        double toReturn = 0;
+
+        for (int i = firstPointNumber; i < lastPointNumber; i += 1) {
+            Point pointOnContour = shape.getAllPoints().get(i);
+            partialHama += shape.getAllPoints().get(i).getHamma();
+
+            Point neighborPoint = shape.getAllPoints().get(i + 1);
+            firstStrangeValue = neighborPoint.minus(pointOnContour);
+
+            secondStrangeValue = point.minus(pointOnContour);
+
+            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
+            strangeR = strangeR < DELTA ? DELTA : strangeR;
+
+            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
+                    / (strangeR * (2 * PI));
+            strangeProd *= partialHama;
+
+            toReturn += strangeProd;
+        }
+
+        return new Pair<Double>(toReturn, partialHama);
+    }
+
+    public double getPhiDipol(Point point) {       //todo refactor to use two methods : compute for
+        double toReturn = point.getX() * cos(alpha) + point.getY() * sin(alpha);
+
+        Point firstStrangeValue = null;
+        Point secondStrangeValue = null;
 
         double partialHama = 0.0;
         int amountOfPointsOfSeparation = shape.getPointsOfSeparation().size();
 
-        for (int i = 0; i < flyingPointsWithHama.size(); i += amountOfPointsOfSeparation) {
-            PointWithHamma flyingPoint = flyingPointsWithHama.get(i);
-            partialHama += flyingPoint.getHamma();
+        Pair<Double> result = computeForFlyingPoints(0, point, 0, 0, amountOfPointsOfSeparation);
+        toReturn += result.getFirstValue();
+        partialHama += result.getSecondValue();
 
-            if (i + amountOfPointsOfSeparation < flyingPointsWithHama.size()) {
-                Point neighborPoint = flyingPointsWithHama.get(i + amountOfPointsOfSeparation);
-                firstStrangeValue = flyingPoint.minus(neighborPoint);
-            } else {
-                Point neighborPoint = shape.getListOfPoints().get(0);
-                firstStrangeValue = flyingPoint.minus(neighborPoint);
-            }
+        result = computeForContourPoints(partialHama, point, 0, shape.getAllPoints().size() / 4 - 1);
+        toReturn += result.getFirstValue();
+        partialHama += result.getSecondValue();
 
-            secondStrangeValue = point.minus(flyingPoint);
+        result = computeForFlyingPoints(0, point, 1, 1, amountOfPointsOfSeparation);
+        toReturn += result.getFirstValue();
+        partialHama += result.getSecondValue();
 
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
+        int middleIndex = shape.getAllPoints().size() / 4 + (shape.getAllPoints().size() / 4 / 2);
 
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * Math.PI));
-            strangeProd *= partialHama;
+        result = computeForContourPoints(partialHama, point, shape.getAllPoints().size() / 4, middleIndex);
+        toReturn += result.getFirstValue();
+        partialHama += result.getSecondValue();
 
-            toReturn += strangeProd;
-        }
+        double newHama = 0;
+        result = computeForFlyingPoints(0, point, 4, 5, amountOfPointsOfSeparation);
+        toReturn += result.getFirstValue();
+        newHama += result.getSecondValue();
 
-        for (int i = 0; i < shape.getAllPoints().size() / 4 - 1; i += 1) {
-            Point pointOnContour = shape.getAllPoints().get(i);
-            partialHama += hamma.get(i);
+        result = computeForContourPoints(newHama, point, shape.getAllPoints().size() / 4 * 3, shape.getAllPoints().size() - 1);
+        toReturn += result.getFirstValue();
+        newHama += result.getSecondValue();
 
-            Point neighborPoint = shape.getAllPoints().get(i + 1);
-            firstStrangeValue = pointOnContour.minus(neighborPoint);
+        partialHama += newHama;
 
-            secondStrangeValue = point.minus(pointOnContour);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * Math.PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }
-
-        double oldPartialHama = partialHama;
+        result = computeForContourPoints(partialHama, point, middleIndex, shape.getAllPoints().size() / 4 * 2);
+        toReturn += result.getFirstValue();
+        partialHama += result.getSecondValue();
         partialHama = 0;
 
-        for (int i = 1; i < flyingPointsWithHama.size(); i += amountOfPointsOfSeparation) {
-            PointWithHamma flyingPoint = flyingPointsWithHama.get(i);
-            partialHama += flyingPoint.getHamma();
+        result = computeForFlyingPoints(0, point, 2, 2, amountOfPointsOfSeparation);
+        toReturn += result.getFirstValue();
+        partialHama += result.getSecondValue();
 
-            if (i + amountOfPointsOfSeparation < flyingPointsWithHama.size()) {
-                Point neighborPoint = flyingPointsWithHama.get(i + amountOfPointsOfSeparation);
-                firstStrangeValue = flyingPoint.minus(neighborPoint);
-            } else {
-                Point neighborPoint = shape.getListOfPoints().get(1);
-                firstStrangeValue = flyingPoint.minus(neighborPoint);
-            }
+        result = computeForContourPoints(partialHama, point, shape.getAllPoints().size() / 4 * 2, shape.getAllPoints().size() / 4 * 3);
+        toReturn += result.getFirstValue();
+        partialHama += result.getSecondValue();
 
-            secondStrangeValue = point.minus(flyingPoint);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * Math.PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }
-
-        partialHama = oldPartialHama + partialHama;
-        int middleIndex = shape.getAllPoints().size() / 4 +( shape.getAllPoints().size() / 4 / 2);
-        for (int i = shape.getAllPoints().size() / 4; i < middleIndex; i += 1) {
-            Point pointOnContour = shape.getAllPoints().get(i);
-            partialHama += hamma.get(i);
-
-            Point neighborPoint = shape.getAllPoints().get(i + 1);
-            firstStrangeValue = pointOnContour.minus(neighborPoint);
-
-            secondStrangeValue = point.minus(pointOnContour);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * Math.PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }
-
-        oldPartialHama = partialHama;
-        partialHama = 0;
-
-        for (int i = amountOfPointsOfSeparation; i < flyingPointsWithHama.size(); i += amountOfPointsOfSeparation) {
-            PointWithHamma flyingPoint = flyingPointsWithHama.get(i);
-            partialHama += flyingPoint.getHamma();
-
-            if (i + amountOfPointsOfSeparation < flyingPointsWithHama.size()) {
-                Point neighborPoint = flyingPointsWithHama.get(i + amountOfPointsOfSeparation);
-                firstStrangeValue = flyingPoint.minus(neighborPoint);
-            } else {
-                Point neighborPoint = shape.getListOfPoints().get(4);
-                firstStrangeValue = flyingPoint.minus(neighborPoint);
-            }
-
-            secondStrangeValue = point.minus(flyingPoint);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * Math.PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }
-
-        for (int i = shape.getAllPoints().size() / 4 * 3; i < shape.getAllPoints().size() - 1; i += 1) {
-            Point pointOnContour = shape.getAllPoints().get(i);
-            partialHama += hamma.get(i);
-
-            Point neighborPoint = shape.getAllPoints().get(i + 1);
-            firstStrangeValue = pointOnContour.minus(neighborPoint);
-
-            secondStrangeValue = point.minus(pointOnContour);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * Math.PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }
-
-        partialHama += oldPartialHama;
-
-        for (int i = middleIndex; i < shape.getAllPoints().size() / 4 * 2; i += 1) {
-            Point pointOnContour = shape.getAllPoints().get(i);
-            partialHama += hamma.get(i);
-
-            Point neighborPoint = shape.getAllPoints().get(i + 1);
-            firstStrangeValue = pointOnContour.minus(neighborPoint);
-
-            secondStrangeValue = point.minus(pointOnContour);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * Math.PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }
-
-        oldPartialHama = partialHama;
-        partialHama = 0;
-
-        for (int i = 2; i < flyingPointsWithHama.size(); i += amountOfPointsOfSeparation) {
-            PointWithHamma flyingPoint = flyingPointsWithHama.get(i);
-            partialHama += flyingPoint.getHamma();
-
-            if (i + amountOfPointsOfSeparation < flyingPointsWithHama.size()) {
-                Point neighborPoint = flyingPointsWithHama.get(i + amountOfPointsOfSeparation);
-                firstStrangeValue = flyingPoint.minus(neighborPoint);
-            } else {
-                Point neighborPoint = shape.getListOfPoints().get(2);
-                firstStrangeValue = flyingPoint.minus(neighborPoint);
-            }
-
-            secondStrangeValue = point.minus(flyingPoint);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * Math.PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }
-
-        partialHama += oldPartialHama;
-
-        for (int i = shape.getAllPoints().size() / 4 * 2; i < shape.getAllPoints().size() / 4 * 3; i += 1) {
-            Point pointOnContour = shape.getAllPoints().get(i);
-            partialHama += hamma.get(i);
-
-            Point neighborPoint = shape.getAllPoints().get(i + 1);
-            firstStrangeValue = pointOnContour.minus(neighborPoint);
-
-            secondStrangeValue = point.minus(pointOnContour);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * Math.PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }
-
-        for (int i = flyingPointsWithHama.size() - 2; i > 3; i -= amountOfPointsOfSeparation) {
+       /* for (int i = flyingPointsWithHama.size() - 2; i > 3; i -= amountOfPointsOfSeparation) {
             PointWithHamma flyingPoint = flyingPointsWithHama.get(i);
             partialHama += flyingPoint.getHamma();
 
             if (i != flyingPointsWithHama.size() - 2) {
                 Point neighborPoint = flyingPointsWithHama.get(i - amountOfPointsOfSeparation);
-                firstStrangeValue = neighborPoint.minus(flyingPoint);
+                firstStrangeValue = flyingPoint.minus(neighborPoint);
             } else {
                 Point neighborPoint = shape.getListOfPoints().get(3);
-                firstStrangeValue = neighborPoint.minus(flyingPoint);
+                firstStrangeValue = flyingPoint.minus(neighborPoint);
             }
 
             secondStrangeValue = point.minus(flyingPoint);
@@ -350,11 +275,11 @@ public class Solver {
             strangeR = strangeR < DELTA ? DELTA : strangeR;
 
             double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * Math.PI));
+                    / (strangeR * (2 * PI));
             strangeProd *= partialHama;
 
             toReturn += strangeProd;
-        }
+        }           */
 
         return toReturn;
     }
@@ -363,8 +288,8 @@ public class Solver {
         double toReturn = cos(alpha) * point.getY() - sin(alpha) * point.getX();
 
         double sum = 0;
-        for (int i = 0; i < hamma.size(); i++) {
-            sum += hamma.get(i) * log(computeRj(point, shape.getAllPoints().get(i)));
+        for (int i = 0; i < shape.getAllPoints().size(); i++) {
+            sum += shape.getAllPoints().get(i).getHamma() * log(computeRj(point, shape.getAllPoints().get(i)));
         }
         for (int i = 0; i < flyingPointsWithHama.size(); i++) {
             sum += flyingPointsWithHama.get(i).getHamma() * log(computeRj(point, flyingPointsWithHama.get(i)));
@@ -382,8 +307,8 @@ public class Solver {
 
     public Point computeV(Point point) {
         Point sum = vEternity.add(new Point(0, 0));
-        for (int i = 0; i < hamma.size(); i++) {
-            sum = sum.add(computeVj(point, shape.getAllPoints().get(i)).multiply(hamma.get(i)));
+        for (int i = 0; i < shape.getAllPoints().size(); i++) {
+            sum = sum.add(computeVj(point, shape.getAllPoints().get(i)).multiply(shape.getAllPoints().get(i).getHamma()));
         }
         for (int i = 0; i < flyingPointsWithHama.size(); i++) {
             sum = sum.add(computeVj(point, flyingPointsWithHama.get(i)).multiply(flyingPointsWithHama.get(i).getHamma()));
@@ -538,5 +463,60 @@ public class Solver {
             } else j++;
         }
         return newPoint;
+    }
+
+    public Point awayFromSegmentationPoint(Point point) {
+        boolean lResult = false;
+        double lAbsoluteDistance = shape.getDelta();
+        double lDistance = 0;
+        double lDistance2 = lAbsoluteDistance + shape.getDelta();
+        for (int i = 0; i < shape.getAllPoints().size(); i++) {
+            lDistance = 0;
+            lDistance2 = lAbsoluteDistance + shape.getDelta();
+
+            lDistance = Point.distance(shape.getAllPoints().get(i), point);
+            if (i != shape.getAllPoints().size() - 1)
+                lDistance2 = Point.distance(shape.getAllPoints().get(i + 1), point);
+            if (lDistance < lAbsoluteDistance) {
+                lResult = true;
+
+                if (lDistance2 < lAbsoluteDistance) {
+                    Point.StraightLine lLine =
+                            new Point.StraightLine(shape.getAllPoints().get(i), shape.getAllPoints().get(i + 1));
+                    point = lLine.awayFromLine(point, lAbsoluteDistance);
+                } else
+                    point = (point.minus(shape.getAllPoints().get(i))).multiply(lAbsoluteDistance / lDistance).add(shape.getAllPoints().get(i));
+                //i = 0;
+                //break;
+            }
+
+        }
+        return point;
+    }
+
+    private static class Pair<T> {
+        T firstValue;
+        T secondValue;
+
+        private Pair(T firstValue, T secondValue) {
+            this.firstValue = firstValue;
+            this.secondValue = secondValue;
+        }
+
+        private T getFirstValue() {
+            return firstValue;
+        }
+
+        private void setFirstValue(T firstValue) {
+            this.firstValue = firstValue;
+        }
+
+        private T getSecondValue() {
+            return secondValue;
+        }
+
+        private void setSecondValue(T secondValue) {
+            this.secondValue = secondValue;
+        }
     }
 }

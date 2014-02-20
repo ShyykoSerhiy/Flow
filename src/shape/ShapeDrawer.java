@@ -14,7 +14,7 @@ import java.util.List;
  * Time: 14:18
  */
 public class ShapeDrawer {
-    private static final int POINT_SIZE = 10;
+    private static final int POINT_SIZE = 2;
     private static final Color RED = new Color(255, 0, 0);
     private static final Color GREEN = new Color(0, 255, 0);
     private static final Color BLUE = new Color(0, 0, 255);
@@ -30,14 +30,25 @@ public class ShapeDrawer {
         this.drawer = drawer;
         this.solver = solver;
 
-        phiValues =new double[0][0];
+        phiValues = new double[0][0];
         vectorValues = new Point[0][0];
+
+        negativePointColorManager = new ColorManager(0, 10, new Color(0, 0, 0), new Color(0, 0, 0));
+        positivePointColorManager = new ColorManager(0, 10, new Color(0, 0, 0), new Color(0, 0, 0));
     }
 
     public void draw() {
-        drawPoints(shape.getAllPoints(), BLUE);
-        drawPoints(shape.getKolokPoints(), RED);
-        drawPoints(shape.getListOfPoints(), GREEN);
+        //drawPoints(shape.getAllPoints(), BLUE);
+        //drawPoints(shape.getKolokPoints(), RED);
+        //drawPoints(shape.getListOfPoints(), GREEN);
+        for (int i = 0; i < shape.getAllPoints().size(); i++) {
+            drawer.strokeWeight(POINT_SIZE);
+
+            Color color = getColorByHamma(shape.getAllPoints().get(i).getHamma());
+            drawer.stroke(color.getR(), color.getG(), color.getB());
+            Point drawPoint = helper.getDrawPoint(shape.getAllPoints().get(i));
+            drawer.point((float) drawPoint.getX(), (float) drawPoint.getY());
+        }
     }
 
     private void drawPoints(List<? extends Point> points, Color color) {
@@ -64,10 +75,10 @@ public class ShapeDrawer {
 
         double maxPhi = Double.NEGATIVE_INFINITY;
         double minPhi = Double.POSITIVE_INFINITY;
-        for (int i = 0; i < phiValues.length; i+= POINT_STEP) {
-            for (int j = 0; j < phiValues[i].length; j+= POINT_STEP) {
+        for (int i = 0; i < phiValues.length; i += POINT_STEP) {
+            for (int j = 0; j < phiValues[i].length; j += POINT_STEP) {
                 Point point = helper.getCoordinatePoint(new Point(i, j));
-                double phi = solver.getPhiDipol(point);
+                double phi = solver.getPhi(point);
                 if (phi < minPhi) {
                     minPhi = phi;
                 }
@@ -77,7 +88,7 @@ public class ShapeDrawer {
                 phiValues[i][j] = phi;
             }
         }
-        colorManager = new ColorManager(minPhi, maxPhi, new Color(0, 0, 0), new Color(250, 250, 250));
+        colorManager = new ColorManager(minPhi, maxPhi, new Color(152, 255, 152), new Color(178, 34, 34));
     }
 
     public void drawPhi() {
@@ -114,7 +125,53 @@ public class ShapeDrawer {
         }
     }
 
+    private ColorManager negativePointColorManager;
+    private ColorManager positivePointColorManager;
+
+    public void computeColorManagers() {
+        double maximumValue = 0;
+        double minimumValue = 0;
+
+        for (PointWithHamma pointWithHamma : solver.getFlyingPointsWithHama()) {
+            if (pointWithHamma.getHamma() > maximumValue) {
+                maximumValue = pointWithHamma.getHamma();
+            }
+            if (pointWithHamma.getHamma() < minimumValue) {
+                minimumValue = pointWithHamma.getHamma();
+            }
+        }
+        for (PointWithHamma pointWithHamma : shape.getAllPoints()) {
+            double hamma = pointWithHamma.getHamma();
+            if (hamma > maximumValue) {
+                maximumValue = hamma;
+            }
+            if (hamma < minimumValue) {
+                minimumValue = hamma;
+            }
+        }
+
+        negativePointColorManager = new ColorManager(minimumValue, 0, new Color(10, 10, 255), new Color(255, 255, 255));
+        positivePointColorManager = new ColorManager(0, maximumValue, new Color(255, 255, 255), new Color(255, 10, 10));
+    }
+
     public void drawFlyingPoints() {
-        drawPoints(solver.getFlyingPointsWithHama(), BLUE);
+        for (PointWithHamma pointWithHamma : solver.getFlyingPointsWithHama()) {
+            drawer.strokeWeight(POINT_SIZE);
+
+            Color color = getColorByHamma(pointWithHamma.getHamma());
+            drawer.stroke(color.getR(), color.getG(), color.getB());
+            Point drawPoint = helper.getDrawPoint(pointWithHamma);
+            drawer.point((float) drawPoint.getX(), (float) drawPoint.getY());
+        }
+    }
+
+    public Color getColorByHamma(double hamma) {
+        Color color;
+        if (hamma < 0) {
+            color = negativePointColorManager.getColor(hamma);
+        } else {
+            color = positivePointColorManager.getColor(hamma);
+        }
+        return color;
     }
 }

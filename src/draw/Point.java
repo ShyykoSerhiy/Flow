@@ -113,7 +113,7 @@ public class Point implements Cloneable {
         return distance(new Point(0, 0), this);
     }
 
-    private static class StraightLine {
+    public static class StraightLine {
         double attributeA;
         double attributeB;
         double attributeC;

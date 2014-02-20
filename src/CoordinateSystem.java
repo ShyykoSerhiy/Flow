@@ -28,7 +28,7 @@ public class CoordinateSystem {
         drawer.rect(0, 0, 5, height);
         drawer.text("Y", 10, height-10);
 
-        int n = 10;
+        int n = 30;
         float partX = maxX / ((float)n);
         float partY = maxY / ((float)n);
         int partW = (int) (width/((float)n));

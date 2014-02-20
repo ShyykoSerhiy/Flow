@@ -36,10 +36,10 @@ public class Starter extends PApplet {
         zoom = 1.0f;
         offset = new PVector(0, 0);
         poffset = new PVector(0, 0);
-        coordinateSystem = new CoordinateSystem(this, width, height, 1, 1);
+        coordinateSystem = new CoordinateSystem(this, width, height, 3, 3);
         shape = new ShShape(200);
         solver = new Solver(shape);
-        shapeDrawer = new ShapeDrawer(new Helper(width, height, 1, 1), shape, this, solver);
+        shapeDrawer = new ShapeDrawer(new Helper(width, height, 3, 3), shape, this, solver);
         smooth();
     }
 
@@ -90,16 +90,27 @@ public class Starter extends PApplet {
         } else if (key == 's') {
             solver.movePoints();
             solver.solve();
-            shapeDrawer.computePhi();
-            shapeDrawer.computeVectors();
+            shapeDrawer.computeColorManagers();
+            if (toDrawPhi) {
+                shapeDrawer.computePhi();
+            }
+            if (toDrawVectors) {
+                shapeDrawer.computeVectors();
+            }
             System.out.println("solved");
         } else if (key == 'p') {
             shapeDrawer.computePhi();
             System.out.println("phi computed");
         } else if (key == 'l') {
             toDrawPhi = !toDrawPhi;
+            if (toDrawPhi) {
+                shapeDrawer.computePhi();
+            }
         } else if (key == 'v') {
             shapeDrawer.computeVectors();
+            if (toDrawVectors) {
+                shapeDrawer.computeVectors();
+            }
             System.out.println("computeVectors computed");
         } else if (key == 'b') {
             toDrawVectors = !toDrawVectors;

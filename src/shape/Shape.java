@@ -1,6 +1,7 @@
 package shape;
 
 import draw.Point;
+import draw.PointWithHamma;
 
 import java.util.List;
 
@@ -13,11 +14,11 @@ public abstract class Shape {
     /**
      * List of points which describe shape
      */
-    protected List<Point> listOfPoints;
+    protected List<PointWithHamma> listOfPoints;
     /**
      * All points
      */
-    protected List<Point> allPoints;
+    protected List<PointWithHamma> allPoints;
     /**
      * Kolokation points
      */
@@ -29,13 +30,14 @@ public abstract class Shape {
     /**
      * Points from which flying points will take off
      */
-    protected List<Point> pointsOfSeparation;
+    protected List<PointWithHamma> pointsOfSeparation;
+    protected double delta;
 
-    public List<Point> getListOfPoints() {
+    public List<PointWithHamma> getListOfPoints() {
         return listOfPoints;
     }
 
-    public List<Point> getAllPoints() {
+    public List<PointWithHamma> getAllPoints() {
         return allPoints;
     }
 
@@ -47,7 +49,11 @@ public abstract class Shape {
         return normal;
     }
 
-    public List<Point> getPointsOfSeparation() {
+    public List<PointWithHamma> getPointsOfSeparation() {
         return pointsOfSeparation;
+    }
+
+    public double getDelta() {
+        return delta;
     }
 }
