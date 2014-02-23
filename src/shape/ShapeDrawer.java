@@ -132,14 +132,17 @@ public class ShapeDrawer {
         double maximumValue = 0;
         double minimumValue = 0;
 
-        for (PointWithHamma pointWithHamma : solver.getFlyingPointsWithHama()) {
-            if (pointWithHamma.getHamma() > maximumValue) {
-                maximumValue = pointWithHamma.getHamma();
-            }
-            if (pointWithHamma.getHamma() < minimumValue) {
-                minimumValue = pointWithHamma.getHamma();
+        for (List<PointWithHamma> pointWithHammaList : solver.getFlyingPointsWithHama().values()) {
+            for (PointWithHamma pointWithHamma : pointWithHammaList) {
+                if (pointWithHamma.getHamma() > maximumValue) {
+                    maximumValue = pointWithHamma.getHamma();
+                }
+                if (pointWithHamma.getHamma() < minimumValue) {
+                    minimumValue = pointWithHamma.getHamma();
+                }
             }
         }
+
         for (PointWithHamma pointWithHamma : shape.getAllPoints()) {
             double hamma = pointWithHamma.getHamma();
             if (hamma > maximumValue) {
@@ -155,13 +158,15 @@ public class ShapeDrawer {
     }
 
     public void drawFlyingPoints() {
-        for (PointWithHamma pointWithHamma : solver.getFlyingPointsWithHama()) {
-            drawer.strokeWeight(POINT_SIZE);
+        for (List<PointWithHamma> pointWithHammaList : solver.getFlyingPointsWithHama().values()) {
+            for (PointWithHamma pointWithHamma : pointWithHammaList) {
+                drawer.strokeWeight(POINT_SIZE);
 
-            Color color = getColorByHamma(pointWithHamma.getHamma());
-            drawer.stroke(color.getR(), color.getG(), color.getB());
-            Point drawPoint = helper.getDrawPoint(pointWithHamma);
-            drawer.point((float) drawPoint.getX(), (float) drawPoint.getY());
+                Color color = getColorByHamma(pointWithHamma.getHamma());
+                drawer.stroke(color.getR(), color.getG(), color.getB());
+                Point drawPoint = helper.getDrawPoint(pointWithHamma);
+                drawer.point((float) drawPoint.getX(), (float) drawPoint.getY());
+            }
         }
     }
 

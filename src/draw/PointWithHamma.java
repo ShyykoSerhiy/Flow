@@ -26,5 +26,16 @@ public class PointWithHamma extends Point {
         this.hamma = hamma;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
 
+        PointWithHamma that = (PointWithHamma) o;
+
+        if (Double.compare(that.hamma, hamma) != 0) return false;
+
+        return true;
+    }
 }

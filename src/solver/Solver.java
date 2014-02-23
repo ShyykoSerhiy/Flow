@@ -26,7 +26,7 @@ public class Solver {
     /**
      * Points
      */
-    private List<List<PointWithHamma>> flyingPointsWithHama;
+    private Map<PointWithHamma, List<PointWithHamma>> flyingPointsWithHama;
     private double alpha;
 
     public Solver(Shape shape) {
@@ -34,10 +34,13 @@ public class Solver {
         alpha = 0; //todo
         this.vEternity = new Point(cos(alpha), sin(alpha)); //todo move to constructor parameters
 
-        flyingPointsWithHama = new ArrayList<List<PointWithHamma>>();
+        flyingPointsWithHama = new HashMap<PointWithHamma, List<PointWithHamma>>();
+        for (PointWithHamma pointWithHamma : shape.getPointsOfSeparation()) {
+            flyingPointsWithHama.put(pointWithHamma, new ArrayList<PointWithHamma>());
+        }
     }
 
-    public List<List<PointWithHamma>> getFlyingPointsWithHama() {
+    public Map<PointWithHamma, List<PointWithHamma>> getFlyingPointsWithHama() {
         return flyingPointsWithHama;
     }
 
@@ -59,7 +62,7 @@ public class Solver {
             matrix.add(rowOfMatrix);
 
             double rightPart = -vEternity.multiply(shape.getNormal().get(i));
-            for (List<PointWithHamma> list : flyingPointsWithHama) {
+            for (List<PointWithHamma> list : flyingPointsWithHama.values()) {
                 for (PointWithHamma pointWithHamma : list) {
                     rightPart -= pointWithHamma.getHamma() * computeVj(kolokPoint, pointWithHamma).multiply(normalInKolocPoint);
                 }
@@ -70,7 +73,7 @@ public class Solver {
 
         matrix.add(new ArrayList<Double>(Collections.nCopies(amountOfCollocPoints + 1, 1.0)));
         double lastRightPart = 0;
-        for (List<PointWithHamma> list : flyingPointsWithHama) {
+        for (List<PointWithHamma> list : flyingPointsWithHama.values()) {
             for (PointWithHamma pointWithHamma : list) {
                 lastRightPart -= pointWithHamma.getHamma();
             }
@@ -87,7 +90,7 @@ public class Solver {
         // adding flying points (pointsWithHamma)
         for (PointWithHamma pointWithHamma : shape.getPointsOfSeparation()) {
             PointWithHamma flyingPoint = new PointWithHamma(pointWithHamma.getX(), pointWithHamma.getY(), pointWithHamma.getHamma());
-            flyingPointsWithHama.add(flyingPoint);
+            flyingPointsWithHama.get(pointWithHamma).add(flyingPoint);
         }
     }
 
@@ -95,14 +98,13 @@ public class Solver {
      * Moving flying points with intersection check
      */
     public void movePoints() {
-        if (flyingPointsWithHama.isEmpty()) {
+        if (flyingPointsWithHama.get(shape.getPointsOfSeparation().get(0)).isEmpty()) {
             return;
         }
 
         double maxSpeed = 0;
-        for (int i = flyingPointsWithHama.size() - 1;
-             i > flyingPointsWithHama.size() - shape.getPointsOfSeparation().size() - 1; i--) {
-            PointWithHamma pointWithHamma = flyingPointsWithHama.get(i);
+        for (List<PointWithHamma> flyingPoints : flyingPointsWithHama.values()) {
+            PointWithHamma pointWithHamma = flyingPoints.get(flyingPoints.size() - 1);
             Point speed = computeV(pointWithHamma);
             double speedDouble = Point.distance(speed, new Point(0, 0));
             if (maxSpeed < speedDouble) {
@@ -111,16 +113,17 @@ public class Solver {
         }
         double time = shape.getDelta() / maxSpeed;
 
-        for (int i = 0; i < flyingPointsWithHama.size(); i++) {
-            PointWithHamma oldPoint = flyingPointsWithHama.get(i);
-            Point newPointCoordinate = null;
-            newPointCoordinate = computeV(oldPoint).multiply(time).add(oldPoint);
-            newPointCoordinate = reflectIsCrossCarcases(oldPoint, newPointCoordinate);
-            newPointCoordinate = awayFromSegmentationPoint(newPointCoordinate);
+        for (List<PointWithHamma> flyingPoints : flyingPointsWithHama.values()) {
+            for (int i = 0; i < flyingPoints.size(); i++) {
+                PointWithHamma oldPoint = flyingPoints.get(i);
+                Point newPointCoordinate = null;
+                newPointCoordinate = computeV(oldPoint).multiply(time).add(oldPoint);
+                newPointCoordinate = reflectIsCrossCarcases(oldPoint, newPointCoordinate);
+                newPointCoordinate = awayFromSegmentationPoint(newPointCoordinate);
 
-            flyingPointsWithHama.set(i, new PointWithHamma(newPointCoordinate.getX(), newPointCoordinate.getY(),
-                    oldPoint.getHamma()));
-            //todo check for intersection and away from segmentation
+                flyingPoints.set(i, new PointWithHamma(newPointCoordinate.getX(), newPointCoordinate.getY(),
+                        oldPoint.getHamma()));
+            }
         }
     }
 
@@ -135,28 +138,31 @@ public class Solver {
             );
         }
 
-        for (PointWithHamma pointWithHamma : flyingPointsWithHama) {
-            sum += pointWithHamma.getHamma() * atan2(
-                    point.getY() - pointWithHamma.getY(),
-                    point.getX() - pointWithHamma.getX()
-            );
+        for (List<PointWithHamma> pointWithHammaList : flyingPointsWithHama.values()) {
+            for (PointWithHamma pointWithHamma : pointWithHammaList) {
+                sum += pointWithHamma.getHamma() * atan2(
+                        point.getY() - pointWithHamma.getY(),
+                        point.getX() - pointWithHamma.getX()
+                );
+            }
         }
         toReturn += 1 / (2 * PI) * sum;
         return toReturn;
     }
 
     public Pair<Double> computeForFlyingPoints(double partialHama, Point point, int firstFlyingPointNumber,
-                                               int numberOfLastPoint, int amountOfPointsOfSeparation) {
+                                               int numberOfLastPoint) {
         Point firstStrangeValue = new Point(0, 0);
         Point secondStrangeValue = new Point(0, 0);
         double toReturn = 0;
+        List<PointWithHamma> flyingPoints = flyingPointsWithHama.get(shape.getPointsOfSeparation().get(firstFlyingPointNumber));
 
-        for (int i = firstFlyingPointNumber; i < flyingPointsWithHama.size(); i += amountOfPointsOfSeparation) {
-            PointWithHamma flyingPoint = flyingPointsWithHama.get(i);
+        for (int i = firstFlyingPointNumber; i < flyingPoints.size(); i++) {
+            PointWithHamma flyingPoint = flyingPoints.get(i);
             partialHama += flyingPoint.getHamma();
 
-            if (i + amountOfPointsOfSeparation < flyingPointsWithHama.size()) {
-                Point neighborPoint = flyingPointsWithHama.get(i + amountOfPointsOfSeparation);
+            if (i + 1 < flyingPointsWithHama.size()) {
+                Point neighborPoint = flyingPoints.get(i + 1);
                 firstStrangeValue = neighborPoint.minus(flyingPoint);
             } else {
                 Point neighborPoint = shape.getListOfPoints().get(numberOfLastPoint);
@@ -215,7 +221,7 @@ public class Solver {
         double partialHama = 0.0;
         int amountOfPointsOfSeparation = shape.getPointsOfSeparation().size();
 
-        Pair<Double> result = computeForFlyingPoints(0, point, 0, 0, amountOfPointsOfSeparation);
+        Pair<Double> result = computeForFlyingPoints(0, point, 0, 0);
         toReturn += result.getFirstValue();
         partialHama += result.getSecondValue();
 
@@ -223,7 +229,7 @@ public class Solver {
         toReturn += result.getFirstValue();
         partialHama += result.getSecondValue();
 
-        result = computeForFlyingPoints(0, point, 1, 1, amountOfPointsOfSeparation);
+        result = computeForFlyingPoints(0, point, 1, 1);
         toReturn += result.getFirstValue();
         partialHama += result.getSecondValue();
 
@@ -234,7 +240,7 @@ public class Solver {
         partialHama += result.getSecondValue();
 
         double newHama = 0;
-        result = computeForFlyingPoints(0, point, 4, 5, amountOfPointsOfSeparation);
+        result = computeForFlyingPoints(0, point, 4, 5);
         toReturn += result.getFirstValue();
         newHama += result.getSecondValue();
 
@@ -249,7 +255,7 @@ public class Solver {
         partialHama += result.getSecondValue();
         partialHama = 0;
 
-        result = computeForFlyingPoints(0, point, 2, 2, amountOfPointsOfSeparation);
+        result = computeForFlyingPoints(0, point, 2, 2);
         toReturn += result.getFirstValue();
         partialHama += result.getSecondValue();
 
@@ -291,8 +297,10 @@ public class Solver {
         for (int i = 0; i < shape.getAllPoints().size(); i++) {
             sum += shape.getAllPoints().get(i).getHamma() * log(computeRj(point, shape.getAllPoints().get(i)));
         }
-        for (int i = 0; i < flyingPointsWithHama.size(); i++) {
-            sum += flyingPointsWithHama.get(i).getHamma() * log(computeRj(point, flyingPointsWithHama.get(i)));
+        for (List<PointWithHamma> flyingPoints : flyingPointsWithHama.values()) {
+            for (PointWithHamma flyingPoint : flyingPoints) {
+                sum += flyingPoint.getHamma() * log(computeRj(point, flyingPoint));
+            }
         }
         toReturn -= 1 / (2 * PI) * sum;
         return toReturn;
@@ -310,8 +318,10 @@ public class Solver {
         for (int i = 0; i < shape.getAllPoints().size(); i++) {
             sum = sum.add(computeVj(point, shape.getAllPoints().get(i)).multiply(shape.getAllPoints().get(i).getHamma()));
         }
-        for (int i = 0; i < flyingPointsWithHama.size(); i++) {
-            sum = sum.add(computeVj(point, flyingPointsWithHama.get(i)).multiply(flyingPointsWithHama.get(i).getHamma()));
+        for (List<PointWithHamma> flyingPoints : flyingPointsWithHama.values()) {
+            for (PointWithHamma flyingPoint : flyingPoints) {
+                sum = sum.add(computeVj(point, flyingPoint).multiply(flyingPoint.getHamma()));
+            }
         }
         return sum;
     }
