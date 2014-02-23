@@ -14,7 +14,7 @@ import java.util.List;
  * Time: 14:18
  */
 public class ShapeDrawer {
-    private static final int POINT_SIZE = 2;
+    private static final int POINT_SIZE = 5;
     private static final Color RED = new Color(255, 0, 0);
     private static final Color GREEN = new Color(0, 255, 0);
     private static final Color BLUE = new Color(0, 0, 255);
@@ -78,7 +78,7 @@ public class ShapeDrawer {
         for (int i = 0; i < phiValues.length; i += POINT_STEP) {
             for (int j = 0; j < phiValues[i].length; j += POINT_STEP) {
                 Point point = helper.getCoordinatePoint(new Point(i, j));
-                double phi = solver.getPhi(point);
+                double phi = solver.getPsi(point);
                 if (phi < minPhi) {
                     minPhi = phi;
                 }

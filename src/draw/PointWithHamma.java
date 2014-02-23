@@ -26,6 +26,10 @@ public class PointWithHamma extends Point {
         this.hamma = hamma;
     }
 
+    public boolean equalsByCoordinates(Point point){
+        return super.equals(point);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -36,10 +36,10 @@ public class Starter extends PApplet {
         zoom = 1.0f;
         offset = new PVector(0, 0);
         poffset = new PVector(0, 0);
-        coordinateSystem = new CoordinateSystem(this, width, height, 3, 3);
-        shape = new ShShape(200);
+        coordinateSystem = new CoordinateSystem(this, width*2, height*2, 3*2, 3*2);
+        shape = new ShShape(84);
         solver = new Solver(shape);
-        shapeDrawer = new ShapeDrawer(new Helper(width, height, 3, 3), shape, this, solver);
+        shapeDrawer = new ShapeDrawer(new Helper(width*2, height*2, 3*2, 3*2), shape, this, solver);
         smooth();
     }
 
