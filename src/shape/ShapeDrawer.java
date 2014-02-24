@@ -24,6 +24,10 @@ public class ShapeDrawer {
     private PApplet drawer;
     private Solver solver;
 
+    private ColorManagerDrawer negativePointColorManagerDrawer;
+    private ColorManagerDrawer positivePointColorManagerDrawer;
+    private ColorManagerDrawer colorManagerDrawer;
+
     public ShapeDrawer(Helper helper, Shape shape, PApplet drawer, Solver solver) {
         this.helper = helper;
         this.shape = shape;
@@ -35,6 +39,17 @@ public class ShapeDrawer {
 
         negativePointColorManager = new ColorManager(0, 10, new Color(0, 0, 0), new Color(0, 0, 0));
         positivePointColorManager = new ColorManager(0, 10, new Color(0, 0, 0), new Color(0, 0, 0));
+        colorManager = new ColorManager(0, 10, new Color(0, 0, 0), new Color(0, 0, 0));
+
+        //todo move those coordinates to parameters
+        int top = 40;
+        int left = 520;
+        negativePointColorManagerDrawer = new ColorManagerDrawer(helper, drawer, negativePointColorManager, top, left);
+        positivePointColorManagerDrawer = new ColorManagerDrawer(helper, drawer, positivePointColorManager,
+                top + ColorManager.COLOR_STEPS * ColorManagerDrawer.SQUARE_SIZE, left);
+        top = 40;
+        left = 580;
+        colorManagerDrawer = new ColorManagerDrawer(helper, drawer, colorManager, top, left);
     }
 
     public void draw() {
@@ -49,6 +64,12 @@ public class ShapeDrawer {
             Point drawPoint = helper.getDrawPoint(shape.getAllPoints().get(i));
             drawer.point((float) drawPoint.getX(), (float) drawPoint.getY());
         }
+    }
+
+    public void drawColorManagers() {
+        negativePointColorManagerDrawer.draw();
+        positivePointColorManagerDrawer.draw();
+        colorManagerDrawer.draw();
     }
 
     private void drawPoints(List<? extends Point> points, Color color) {
@@ -88,7 +109,9 @@ public class ShapeDrawer {
                 phiValues[i][j] = phi;
             }
         }
-        colorManager = new ColorManager(minPhi, maxPhi, new Color(152, 255, 152), new Color(178, 34, 34));
+        //colorManager = new ColorManager(minPhi, maxPhi, new Color(152, 255, 152), new Color(178, 34, 34));
+        colorManager = new ColorManager(minPhi, maxPhi, new Color(255, 255, 255), new Color(0, 0, 0));
+        colorManagerDrawer.setColorManager(colorManager);
     }
 
     public void drawPhi() {
@@ -155,6 +178,9 @@ public class ShapeDrawer {
 
         negativePointColorManager = new ColorManager(minimumValue, 0, new Color(10, 10, 255), new Color(255, 255, 255));
         positivePointColorManager = new ColorManager(0, maximumValue, new Color(255, 255, 255), new Color(255, 10, 10));
+
+        negativePointColorManagerDrawer.setColorManager(negativePointColorManager);
+        positivePointColorManagerDrawer.setColorManager(positivePointColorManager);
     }
 
     public void drawFlyingPoints() {

@@ -12,6 +12,7 @@ import solver.Solver;
  * Time: 19:03
  */
 public class Starter extends PApplet {
+    private static final float COORDINATE_MULTIPLIER = 1f;
     float zoom;
     // A vector to store the offset from the center
     PVector offset;
@@ -36,10 +37,12 @@ public class Starter extends PApplet {
         zoom = 1.0f;
         offset = new PVector(0, 0);
         poffset = new PVector(0, 0);
-        coordinateSystem = new CoordinateSystem(this, width*2, height*2, 3*2, 3*2);
-        shape = new ShShape(84);
+        coordinateSystem = new CoordinateSystem(this, (int) (width * COORDINATE_MULTIPLIER), (int) (height * COORDINATE_MULTIPLIER),
+                (int) (3 * COORDINATE_MULTIPLIER), (int) (3 * COORDINATE_MULTIPLIER));
+        shape = new ShShape(204);
         solver = new Solver(shape);
-        shapeDrawer = new ShapeDrawer(new Helper(width*2, height*2, 3*2, 3*2), shape, this, solver);
+        shapeDrawer = new ShapeDrawer(new Helper((int) (width * COORDINATE_MULTIPLIER), (int) (height * COORDINATE_MULTIPLIER),
+                (int) (3 * COORDINATE_MULTIPLIER), (int) (3 * COORDINATE_MULTIPLIER)), shape, this, solver);
         smooth();
     }
 
@@ -77,8 +80,7 @@ public class Starter extends PApplet {
                 "v: compute vectors\n" +
                 "b: draw vectors\n" +
                 "drag mouse to pan", 10, 32);
-
-
+        shapeDrawer.drawColorManagers();
     }
 
     // Zoom in and out when the key is pressed
@@ -88,7 +90,6 @@ public class Starter extends PApplet {
         } else if (key == 'z') {
             zoom -= 0.1;
         } else if (key == 's') {
-            solver.movePoints();
             solver.solve();
             shapeDrawer.computeColorManagers();
             if (toDrawPhi) {

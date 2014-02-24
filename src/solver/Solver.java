@@ -16,6 +16,7 @@ import static java.lang.Math.*;
  */
 public class Solver {
     public static final double DELTA = 0.001;
+    private static final int MAXIMUM_OF_FLYING_POINTS_PER_SEPARATION = 2000000;
 
     private Shape shape;
     /**
@@ -31,7 +32,7 @@ public class Solver {
 
     public Solver(Shape shape) {
         this.shape = shape;
-        alpha = 0; //todo
+        alpha = PI / 6; //todo
         this.vEternity = new Point(cos(alpha), sin(alpha)); //todo move to constructor parameters
 
         flyingPointsWithHama = new HashMap<PointWithHamma, List<PointWithHamma>>();
@@ -51,8 +52,13 @@ public class Solver {
         if (!firstSolve) {
             for (PointWithHamma pointWithHamma : shape.getPointsOfSeparation()) {
                 PointWithHamma flyingPoint = new PointWithHamma(pointWithHamma.getX(), pointWithHamma.getY(), pointWithHamma.getHamma());
-                flyingPointsWithHama.get(pointWithHamma).add(flyingPoint);
+                List<PointWithHamma> pointWithHammaList = flyingPointsWithHama.get(pointWithHamma);
+                if (pointWithHammaList.size() == MAXIMUM_OF_FLYING_POINTS_PER_SEPARATION) {
+                    pointWithHammaList.remove(0);
+                }
+                pointWithHammaList.add(flyingPoint);
             }
+            movePoints();
         } else {
             firstSolve = false;
         }
