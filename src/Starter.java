@@ -12,7 +12,7 @@ import solver.Solver;
  * Time: 19:03
  */
 public class Starter extends PApplet {
-    private static final float COORDINATE_MULTIPLIER = 1f;
+    private static final float COORDINATE_MULTIPLIER = 2f;
     float zoom;
     // A vector to store the offset from the center
     PVector offset;
@@ -39,7 +39,7 @@ public class Starter extends PApplet {
         poffset = new PVector(0, 0);
         coordinateSystem = new CoordinateSystem(this, (int) (width * COORDINATE_MULTIPLIER), (int) (height * COORDINATE_MULTIPLIER),
                 (int) (3 * COORDINATE_MULTIPLIER), (int) (3 * COORDINATE_MULTIPLIER));
-        shape = new ShShape(204);
+        shape = new ShShape(84);
         solver = new Solver(shape);
         shapeDrawer = new ShapeDrawer(new Helper((int) (width * COORDINATE_MULTIPLIER), (int) (height * COORDINATE_MULTIPLIER),
                 (int) (3 * COORDINATE_MULTIPLIER), (int) (3 * COORDINATE_MULTIPLIER)), shape, this, solver);

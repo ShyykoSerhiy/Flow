@@ -75,7 +75,20 @@ public class Point implements Cloneable {
         return result;
     }
 
+    @Override
+    public String toString() {
+        return "Point{" +
+                "x=" + x +
+                ", y=" + y +
+                '}';
+    }
+
     public static boolean intersects(Point firstStartPoint, Point firstEndPoint, Point secondStartPoint, Point secondEndPoint) {
+        StraightLine line = new StraightLine(firstEndPoint, secondEndPoint);
+        if (!line.projectionIsOnLine(secondStartPoint) && !line.projectionIsOnLine(secondEndPoint)){
+            return false;
+        }
+
         Point crossPoint = null;
         Point firstVector = firstEndPoint.minus(firstStartPoint);
         Point secondVector = secondEndPoint.minus(secondStartPoint);
@@ -117,7 +130,7 @@ public class Point implements Cloneable {
         double length = distance(new Point(0, 0), normal);
         normal = normal.multiply(1 / length);
         StraightLine lLine = new StraightLine(startPoint, endPoint);
-        double lDot2 = 2 * lLine.distanceToPoint(pointToReflect);
+        double lDot2 = lLine.distanceToPoint(pointToReflect);
         Point lResult = pointToReflect.minus(normal.multiply(lDot2));
         if (lLine.f(lResult) * lLine.f(pointToReflect) < 0)
             return lResult;
@@ -138,6 +151,9 @@ public class Point implements Cloneable {
     }
 
     public static class StraightLine {
+        Point pA;
+        Point pB;
+
         double attributeA;
         double attributeB;
         double attributeC;
@@ -146,6 +162,8 @@ public class Point implements Cloneable {
             attributeA = pB.y - pA.y;
             attributeB = pA.x - pB.x;
             attributeC = pA.y * pB.x - pA.x * pB.y;
+            this.pA = pA;
+            this.pB = pB;
         }
 
         public double f(double pX, double pY) {
@@ -157,7 +175,31 @@ public class Point implements Cloneable {
         }
 
         public double distanceToPoint(Point pPoint) {
+            if (projectionIsOnLine(pPoint)){
+                return rawDistanceToPoint(pPoint);
+            } else {
+                return 1000000; //todo
+            }
+        }
+
+        public double rawDistanceToPoint(Point pPoint){
             return Math.abs(f(pPoint)) / Math.sqrt(attributeA * attributeA + attributeB * attributeB);
+        }
+
+        public boolean projectionIsOnLine(Point point) {
+            double distance = rawDistanceToPoint(point);
+            Point normal = new Point(pA.getY() - pB.getY(), pA.getX() - pB.getX());
+            normal.divide(distance(normal, new Point(0, 0)));
+            Point pointOnLine = point.add(normal.multiply(distance));
+            if (Math.abs(f(pointOnLine)) > 0.01) {
+                normal = normal.multiply(-1);
+                pointOnLine = point.add(normal.multiply(distance));
+            }
+            if (((pA.getX() <= pointOnLine.getX() && pointOnLine.getX() <= pB.getX()) || ((pA.getX() >= pointOnLine.getX() && pointOnLine.getX() >= pB.getX())) &&
+                    ((pA.getY() <= pointOnLine.getY() && pointOnLine.getY() <= pB.getY()) || pA.getY() >= pointOnLine.getY() && pointOnLine.getY() >= pB.getY()))) {
+                return true;
+            }
+            return false;
         }
 
         public Point pointOnLine() {
@@ -171,18 +213,18 @@ public class Point implements Cloneable {
         public Point normalToPoint(Point pPoint) {
             Point lPointOnLine = pointOnLine();
             Point lNormal = new Point(attributeA, attributeB);
-            lNormal = lNormal .multiply(1 / lNormal.Norm());
+            lNormal = lNormal.multiply(1 / lNormal.Norm());
             if (distanceToPoint(pPoint) == 0)
                 return lNormal;
             if (f(lPointOnLine.add(lNormal)) * f(pPoint) > 0)
                 return lNormal;
-            else return lNormal .multiply(-1);
+            else return lNormal.multiply(-1);
         }
 
         public Point awayFromLine(Point pPoint, double pDistanceAway) {
             double lDistanceToPoint = distanceToPoint(pPoint);
             if (lDistanceToPoint < pDistanceAway) {
-                pPoint = pPoint .add((normalToPoint(pPoint)).multiply(pDistanceAway - lDistanceToPoint));
+                pPoint = pPoint.add((normalToPoint(pPoint)).multiply(pDistanceAway - lDistanceToPoint));
                 return pPoint;
             } else return pPoint;
         }

@@ -7,6 +7,7 @@ import shape.Shape;
 import java.util.*;
 
 import static java.lang.Math.*;
+import static java.lang.Math.abs;
 
 /**
  * Created with IntelliJ IDEA.
@@ -32,7 +33,7 @@ public class Solver {
 
     public Solver(Shape shape) {
         this.shape = shape;
-        alpha = PI / 6; //todo
+        alpha = 0; //todo
         this.vEternity = new Point(cos(alpha), sin(alpha)); //todo move to constructor parameters
 
         flyingPointsWithHama = new HashMap<PointWithHamma, List<PointWithHamma>>();
@@ -129,17 +130,43 @@ public class Solver {
         }
         double time = shape.getDelta() / maxSpeed;
 
-        for (List<PointWithHamma> flyingPoints : flyingPointsWithHama.values()) {
+        for (int j = 0; j < shape.getPointsOfSeparation().size(); j++) {
+            PointWithHamma separationPoint = shape.getPointsOfSeparation().get(j);
+            List<PointWithHamma> flyingPoints = flyingPointsWithHama.get(separationPoint);
+            int[] pointsToSkip;
+            if (j == 1 || j == 2) {
+                pointsToSkip = new int[]{3, 4};
+            } else {
+                pointsToSkip = new int[]{3};
+            }
             for (int i = 0; i < flyingPoints.size(); i++) {
                 PointWithHamma oldPoint = flyingPoints.get(i);
                 Point newPointCoordinate = null;
                 newPointCoordinate = computeV(oldPoint).multiply(time).add(oldPoint);
-                newPointCoordinate = reflectIsCrossCarcases(oldPoint, newPointCoordinate);
-                newPointCoordinate = awayFromSegmentationPoint(newPointCoordinate);
+                /*//todo live hack
+                if (Point.distance(oldPoint, newPointCoordinate) > shape.getDelta()*1.5){
+                   newPointCoordinate = computeV(oldPoint).multiply(shape.getDelta()/Point.distance(oldPoint, newPointCoordinate)).add(oldPoint);
+                }
+                //todo live hack*/
+                if (j==2 && i == 0){
+                    System.out.println(newPointCoordinate);
+                }
+                if (i < flyingPoints.size() - 1) { // there is no need for additional checks for new flying point
+                    newPointCoordinate = reflectIsCrossCarcases(oldPoint, newPointCoordinate, pointsToSkip);
+                    if (j==2 && i == 0){
+                        System.out.println(newPointCoordinate);
+                    }
+                    newPointCoordinate = awayFromSegmentationPoint(newPointCoordinate, pointsToSkip);
+                    if (j==2 && i == 0){
+                        System.out.println(newPointCoordinate);
+                    }
+                }
+
 
                 flyingPoints.set(i, new PointWithHamma(newPointCoordinate.getX(), newPointCoordinate.getY(),
                         oldPoint.getHamma()));
             }
+
         }
     }
 
@@ -600,45 +627,127 @@ public class Solver {
      * @param newPoint
      * @return
      */
-    private Point reflectIsCrossCarcases(Point oldPoint, Point newPoint) {
+    private Point reflectIsCrossCarcases(Point oldPoint, Point newPoint, int[] pointsToSkip) {
         boolean lResult = true;
         int j = 0;
-        while (j < shape.getAllPoints().size() - 1) {
-            if (Point.intersects(newPoint, oldPoint, shape.getAllPoints().get(j), shape.getAllPoints().get(j + 1))) {
-                newPoint = Point.reflect(shape.getAllPoints().get(j), shape.getAllPoints().get(j + 1), newPoint);
-                j = 0;
-                lResult = false;
+        mainCycle:
+        while (j < shape.getListOfPoints().size() - 1) {
+            for (int pointToSkip : pointsToSkip) {
+                if (j == pointToSkip) {
+                    j++;
+                    continue mainCycle;
+                }
+            }
+            Point startPoint = shape.getListOfPoints().get(j);
+            Point endPoint = shape.getListOfPoints().get(j + 1);
+            if (Point.intersects(newPoint, oldPoint, startPoint, endPoint)) {
+
+                return away(startPoint, endPoint, oldPoint, newPoint);
+                //newPoint = Point.reflect(shape.getAllPoints().get(j), shape.getAllPoints().get(j + 1), newPoint);
+                /*j = 0;
+                lResult = false;*/
             } else j++;
         }
         return newPoint;
     }
 
-    public Point awayFromSegmentationPoint(Point point) {
+    public Point away(Point startPoint, Point endPoint, Point oldPoint, Point newPoint) {
+        Point normal = new Point(startPoint.getY() - endPoint.getY(), endPoint.getX() - startPoint.getX());
+        double distance = Point.distance(normal, new Point(0, 0));
+        normal = normal.divide(distance);
+
+        Point.StraightLine line = new Point.StraightLine(startPoint, endPoint);
+        double distanceToLine = line.distanceToPoint(newPoint);
+        if (oldPoint.equals(newPoint)) {
+            distanceToLine = 0;
+        }
+        Point newPossiblePoint = newPoint.add(normal.multiply(shape.getDelta() + distanceToLine));
+        if (!Point.intersects(newPossiblePoint, oldPoint, startPoint, endPoint)) {
+            return newPossiblePoint;
+        } else {
+            normal = normal.multiply(-1);
+            return newPoint.add(normal.multiply(shape.getDelta() + distanceToLine));
+        }
+    }
+
+    public Point awaySeg(Point startPoint, Point endPoint, Point oldPoint, Point newPoint) {
+        Point normal = new Point(startPoint.getY() - endPoint.getY(), endPoint.getX() - startPoint.getX());
+        double distance = Point.distance(normal, new Point(0, 0));
+        normal = normal.divide(distance);
+
+        Point.StraightLine line = new Point.StraightLine(startPoint, endPoint);
+        double distanceToLine = line.distanceToPoint(newPoint);
+        Point newPossiblePoint = newPoint.add(normal.multiply(shape.getDelta() - distanceToLine));
+        if (abs(line.distanceToPoint(newPossiblePoint) - shape.getDelta()) < 0.01 && !Point.intersects(startPoint, endPoint, oldPoint, newPossiblePoint)) {
+            return newPossiblePoint;
+        } else {
+            normal = normal.multiply(-1);
+            return newPoint.add(normal.multiply(shape.getDelta() - distanceToLine));
+        }
+    }
+
+    public static void main(String[] args) {
+        Point firstPoint = new Point(2, 2);
+        Point secondPoint = new Point(1, 2);
+        Point newPoint = new Point(1.2f, 2.04f);
+        awaySega(firstPoint, secondPoint, newPoint, newPoint);
+
+    }
+
+    public static Point awaySega(Point startPoint, Point endPoint, Point oldPoint, Point newPoint) {
+        double delta = 0.083333;
+        Point normal = new Point(startPoint.getY() - endPoint.getY(), endPoint.getX() - startPoint.getX());
+        double distance = Point.distance(normal, new Point(0, 0));
+        normal = normal.divide(distance);
+
+        Point.StraightLine line = new Point.StraightLine(startPoint, endPoint);
+        double distanceToLine = line.distanceToPoint(newPoint);
+        Point newPossiblePoint = newPoint.add(normal.multiply(delta - distanceToLine));
+        if (abs(line.distanceToPoint(newPossiblePoint) - delta) < 0.01 && !Point.intersects(startPoint, endPoint, oldPoint, newPossiblePoint)) {
+            return newPossiblePoint;
+        } else {
+            normal = normal.multiply(-1);
+            return newPoint.add(normal.multiply(delta - distanceToLine));
+        }
+    }
+
+    /**
+     * @param point
+     * @param numbersToSkip which numbers of contour part to skip
+     * @return
+     */
+    public Point awayFromSegmentationPoint(Point point, int... numbersToSkip) {
         boolean lResult = false;
-        double lAbsoluteDistance = shape.getDelta();
+        double lAbsoluteDistance = shape.getDelta() / 2;
         double lDistance;
         double lDistance2;
-        for (int i = 0; i < shape.getAllPoints().size(); i++) {
-            lDistance = 0;
-            lDistance2 = lAbsoluteDistance + shape.getDelta();
-
-            lDistance = Point.distance(shape.getAllPoints().get(i), point);
-            if (i != shape.getAllPoints().size() - 1)
-                lDistance2 = Point.distance(shape.getAllPoints().get(i + 1), point);
-            if (lDistance < lAbsoluteDistance) {
-                lResult = true;
-
-                if (lDistance2 < lAbsoluteDistance) {
-                    Point.StraightLine lLine =
-                            new Point.StraightLine(shape.getAllPoints().get(i), shape.getAllPoints().get(i + 1));
-                    point = lLine.awayFromLine(point, lAbsoluteDistance);
-                } else
-                    point = (point.minus(shape.getAllPoints().get(i))).multiply(lAbsoluteDistance / lDistance).add(shape.getAllPoints().get(i));
-                //i = 0;
-                //break;
+        double minDistance = 10000;
+        Point firstMinPoint = null;
+        Point secondMinPoint = null;
+        mainCycle:
+        for (int i = 0; i < shape.getListOfPoints().size() - 1; i++) {
+            for (int numberToSkip : numbersToSkip) {
+                if (i == numberToSkip) {
+                    continue mainCycle;
+                }
             }
-
+            Point firstPoint = shape.getListOfPoints().get(i);
+            Point secondPoint = shape.getListOfPoints().get(i + 1);
+            Point.StraightLine line = new Point.StraightLine(firstPoint, secondPoint);
+            double distance = line.distanceToPoint(point);
+            if (distance < minDistance) {
+                minDistance = distance;
+                firstMinPoint = firstPoint;
+                secondMinPoint = secondPoint;
+            }
         }
+
+        if (firstMinPoint != null) {
+            if (minDistance < shape.getDelta()) {
+                point = awaySeg(firstMinPoint, secondMinPoint, point, point);
+            }
+        }
+
         return point;
     }
 

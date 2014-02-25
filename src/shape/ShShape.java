@@ -75,7 +75,7 @@ public class ShShape extends Shape {
         normal.addAll(Collections.nCopies(kolokPointsPerSide, new Point(1, 0)));
 
         assert normal.size() == kolokPoints.size();
-        delta = allPoints.get(1).minus(allPoints.get(0)).getY() / 2;
+        delta = allPoints.get(1).minus(allPoints.get(0)).getY();
     }
 
     private List<PointWithHamma> createAdditionalPoints(Point firstPoint, Point secondPoint, int amountOfPoints) {

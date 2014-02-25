@@ -1,11 +1,14 @@
 import processing.core.PApplet;
 
+import java.text.DecimalFormat;
+
 /**
  * User: shyyko
  * Date: 02.02.14
  * Time: 19:05
  */
 public class CoordinateSystem {
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
     private int width;
     private int height;
     private int maxX;
@@ -36,9 +39,9 @@ public class CoordinateSystem {
         for (int i = 0; i < n; i++){
             drawer.fill(0, 255, 0);
             drawer.rect(i*partW-5, 0, 5, 10);
-            drawer.text(""+partX*i, i*partW-5, 30);
+            drawer.text(DECIMAL_FORMAT.format(partX*i), i*partW-5, 30);
             drawer.rect(0, i*partH-5, 10, 5);
-            drawer.text(""+partY*i, 30, i*partH-5);
+            drawer.text(DECIMAL_FORMAT.format(partY*i), 30, i*partH-5);
         }
     }
 }
