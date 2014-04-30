@@ -13,7 +13,7 @@ import java.util.List;
  * Date: 02.02.14
  * Time: 19:18
  */
-public class ShShape extends Shape {
+public final class ShShape extends Shape implements Cloneable{
     private static final int AMOUNT_OF_SIDES = 4;
     private int amountOfAdditionalPoints;
 
@@ -97,4 +97,29 @@ public class ShShape extends Shape {
         }
         return kolokPoints;
     }
+
+	@Override
+	public ShShape clone() throws CloneNotSupportedException {
+		ShShape shShape = new ShShape(amountOfAdditionalPoints);
+		shShape.listOfPoints = cloneList(listOfPoints);
+		shShape.allPoints = cloneList(allPoints);
+		shShape.kolokPoints = cloneList(kolokPoints);
+		shShape.normal = cloneList(normal);
+		shShape.pointsOfSeparation = cloneList(pointsOfSeparation);
+		shShape.delta = delta;
+
+		return shShape;
+	}
+
+	public static <T extends Point> List<T> cloneList(List<T> listToClone){
+		List<T> toReturn = new ArrayList<T>();
+		for (T t : listToClone){
+			try {
+				toReturn.add((T) t.clone());
+			} catch (CloneNotSupportedException e) {
+				e.printStackTrace();
+			}
+		}
+		return toReturn;
+	}
 }

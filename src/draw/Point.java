@@ -150,7 +150,12 @@ public class Point implements Cloneable {
         return distance(new Point(0, 0), this);
     }
 
-    public static class StraightLine {
+	@Override
+	public Point clone() throws CloneNotSupportedException {
+		return new Point(x,y);
+	}
+
+	public static class StraightLine {
         Point pA;
         Point pB;
 

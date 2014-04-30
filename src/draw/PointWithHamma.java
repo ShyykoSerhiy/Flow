@@ -42,4 +42,9 @@ public class PointWithHamma extends Point {
 
         return true;
     }
+
+	@Override
+	public PointWithHamma clone() throws CloneNotSupportedException {
+		return new PointWithHamma(super.clone(), hamma);
+	}
 }

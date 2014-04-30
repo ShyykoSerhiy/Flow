@@ -10,7 +10,7 @@ import java.util.List;
  * Date: 08.02.14
  * Time: 14:18
  */
-public abstract class Shape {
+public abstract class Shape{
     /**
      * List of points which describe shape
      */
@@ -56,4 +56,7 @@ public abstract class Shape {
     public double getDelta() {
         return delta;
     }
+
+	@Override
+	public abstract Shape clone() throws CloneNotSupportedException;
 }
