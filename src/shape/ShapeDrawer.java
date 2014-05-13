@@ -110,7 +110,7 @@ public class ShapeDrawer {
             }
         }
         //colorManager = new ColorManager(minPhi, maxPhi, new Color(152, 255, 152), new Color(178, 34, 34));
-        colorManager = new ColorManager(1, -1, new Color(255, 255, 255), new Color(0, 0, 0));
+        colorManager = new ColorManager(3, -3, new Color(255, 255, 255), new Color(0, 0, 0));
         colorManagerDrawer.setColorManager(colorManager);
     }
 

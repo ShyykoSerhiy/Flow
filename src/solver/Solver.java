@@ -32,6 +32,7 @@ public class Solver {
      */
     private Map<PointWithHamma, List<PointWithHamma>> flyingPointsWithHama;
 	private List<Pair<PointWithHamma>> dipols = new ArrayList<Pair<PointWithHamma>>();
+    private List<Pair<PointWithHamma>> derivativeDipols = new ArrayList<Pair<PointWithHamma>>();
     private double alpha;
 	/**
 	 * time spent on last move.
@@ -129,6 +130,7 @@ public class Solver {
 		}
 		//splitting to dipols
 		splitContourToDipols();
+        //splitContourToDerivativeDipols();
     }
 
 	private void splitContourToDipols(){
@@ -217,6 +219,104 @@ public class Solver {
 		}
 	}
 
+    private void splitContourToDerivativeDipols(){
+        if (allShapes.size() < 2){
+            return;
+        }
+        Shape currentShape = allShapes.get(allShapes.size()-1);
+        Shape previousShape = allShapes.get(allShapes.size()-2);
+
+        List<List<PointWithHamma>> splitContour = new ArrayList<List<PointWithHamma>>();
+
+        splitContour.add(getSplitDerivativeFlyingPointsPart(0));     //////////////////////////////
+        splitContour.add(getSplitDerivativeFlyingPointsPart(1));      //////////////////////////////
+        splitContour.add(getSplitDerivativeFlyingPointsPart(2));      //////////////////////////////
+        splitContour.add(getSplitDerivativeFlyingPointsPart(3));      //////////////////////////////
+        splitContour.add(getSplitDerivativeFlyingPointsPart(4));     //////////////////////////////
+        PointWithHamma connectingPoint0 = splitContour.get(0).get(splitContour.get(0).size() - 1);
+        PointWithHamma connectingPoint1 = splitContour.get(1).get(splitContour.get(1).size() - 1);
+        PointWithHamma connectingPoint2 = splitContour.get(2).get(splitContour.get(2).size() - 1);
+        PointWithHamma connectingPoint3 = splitContour.get(3).get(splitContour.get(3).size() - 1);
+        PointWithHamma connectingPoint4 = splitContour.get(4).get(splitContour.get(4).size() - 1);
+
+        PointWithHamma firstPoint = currentShape.getPointsOfSeparation().get(4);
+        PointWithHamma oldFirstPoint = previousShape.getPointsOfSeparation().get(4);
+        List<PointWithHamma> splitPart = new ArrayList<PointWithHamma>();
+        splitPart.add(new PointWithHamma(firstPoint, -connectingPoint4.getHamma() + ((firstPoint.getHamma()- oldFirstPoint.getHamma())/lastMoveSpentTime)));
+        double sumHamma = splitPart.get(0).getHamma();
+        for (int i = currentShape.getAllPoints().indexOf(currentShape.getPointsOfSeparation().get(4)) + 1;
+             i < currentShape.getAllPoints().size(); i++) {
+            PointWithHamma pointWithHamma = currentShape.getAllPoints().get(i);
+            PointWithHamma oldPointWithHammma = previousShape.getAllPoints().get(i);
+            double derivativeHamma = (pointWithHamma.getHamma() - oldPointWithHammma.getHamma()) / lastMoveSpentTime;
+            PointWithHamma pointToAdd = new PointWithHamma(pointWithHamma, derivativeHamma);
+            splitPart.add(pointToAdd);
+            sumHamma += derivativeHamma;
+        }
+        PointWithHamma lastPoint = splitPart.get(splitPart.size() - 1);
+        sumHamma -= lastPoint.getHamma();
+        lastPoint.setHamma(-sumHamma);
+        splitContour.add(splitPart);    //////////////////////////////
+        PointWithHamma connectingPoint5 = splitContour.get(5).get(splitContour.get(5).size() - 1);
+
+        splitPart = new ArrayList<PointWithHamma>();
+        for (int i = 0; i <= currentShape.getAllPoints().indexOf(currentShape.getPointsOfSeparation().get(3)); i++) {
+            PointWithHamma pointWithHamma = currentShape.getAllPoints().get(i);
+            PointWithHamma oldPointWithHammma = previousShape.getAllPoints().get(i);
+            double derivativeHamma = (pointWithHamma.getHamma() - oldPointWithHammma.getHamma())/lastMoveSpentTime;
+
+            if (pointWithHamma.equalsByCoordinates(connectingPoint0)) {
+                splitPart.add(new PointWithHamma(pointWithHamma, derivativeHamma - connectingPoint0.getHamma()));
+            } else if (pointWithHamma.equalsByCoordinates(connectingPoint1)) {
+                splitPart.add(new PointWithHamma(pointWithHamma, derivativeHamma - connectingPoint1.getHamma()));
+            } else if (pointWithHamma.equalsByCoordinates(connectingPoint2)) {
+                splitPart.add(new PointWithHamma(pointWithHamma, derivativeHamma - connectingPoint2.getHamma()));
+            } else if (pointWithHamma.equalsByCoordinates(connectingPoint3)) {
+                splitPart.add(new PointWithHamma(pointWithHamma, derivativeHamma - connectingPoint3.getHamma()));
+            } else if (pointWithHamma.equalsByCoordinates(connectingPoint5)) {
+                splitPart.add(new PointWithHamma(pointWithHamma, derivativeHamma - connectingPoint5.getHamma()));
+            } else {
+                splitPart.add(new PointWithHamma(pointWithHamma, derivativeHamma));
+            }
+        }
+        splitContour.add(splitPart);
+
+       /* double summ = 0; //todo
+        for (List<PointWithHamma> pointWithHammaList : flyingPointsWithHama.values()) {
+            for (PointWithHamma pointWithHamma : pointWithHammaList) {
+                summ += pointWithHamma.getHamma();
+            }
+        }
+
+        for (int i = 0; i < splitContour.size(); i++) {
+            List<PointWithHamma> list = splitContour.get(i);
+            double sum = 0;
+            for (PointWithHamma pointWithHamma : list) {
+                sum += pointWithHamma.getHamma();
+            }
+            if (abs(sum) > 0.01 && (abs(summ - sum) > 0.01)) {
+                throw new RuntimeException("invalid sum");
+            }
+        }*/
+
+
+        derivativeDipols = new ArrayList<Pair<PointWithHamma>>();
+        for (List<PointWithHamma> pointWithHammaList : splitContour) {
+            double oldHama = 0;
+            for (int i = 0; i < pointWithHammaList.size() - 1; i++) {
+                PointWithHamma firstPointWithHamma = pointWithHammaList.get(i);
+                PointWithHamma secondPointWithHamma = pointWithHammaList.get(i + 1);
+
+                PointWithHamma newFirstPointWithHamma = new PointWithHamma(firstPointWithHamma,
+                        firstPointWithHamma.getHamma() + oldHama);
+                PointWithHamma newSecondPointWithHamma = new PointWithHamma(secondPointWithHamma, -newFirstPointWithHamma.getHamma());
+                oldHama = newFirstPointWithHamma.getHamma();
+                Pair<PointWithHamma> dipol = new Pair<PointWithHamma>(newFirstPointWithHamma, newSecondPointWithHamma);
+                derivativeDipols.add(dipol);
+            }
+        }
+    }
+
 	private List<PointWithHamma> getSplitFlyingPointsPart(int numberOfSeparationPoint) {
 		PointWithHamma pointOfSeparation = shape.getPointsOfSeparation().get(numberOfSeparationPoint);
 		List<PointWithHamma> splitPart = new ArrayList<PointWithHamma>();
@@ -228,6 +328,19 @@ public class Solver {
 		splitPart.add(new PointWithHamma(pointOfSeparation, -sumHama));
 		return splitPart;
 	}
+
+    private List<PointWithHamma> getSplitDerivativeFlyingPointsPart(int numberOfSeparationPoint) {
+        PointWithHamma pointOfSeparation = shape.getPointsOfSeparation().get(numberOfSeparationPoint);
+        List<PointWithHamma> splitPart = new ArrayList<PointWithHamma>();
+        double sumHama = 0;
+        List<PointWithHamma> flyingPoints = flyingPointsWithHama.get(pointOfSeparation);
+        PointWithHamma lastSeparated = flyingPoints.get(flyingPoints.size()-1);
+        splitPart.add(new PointWithHamma(lastSeparated, lastSeparated.getHamma()/lastMoveSpentTime));
+        sumHama += lastSeparated.getHamma()/lastMoveSpentTime;
+
+        splitPart.add(new PointWithHamma(pointOfSeparation, -sumHama));
+        return splitPart;
+    }
 
     /**
      * Moving flying points with intersection check
@@ -344,9 +457,28 @@ public class Solver {
 
 	@SuppressWarnings("unchecked")
 	private double getPhiDerivative(Point point) {
+        if (allShapes.size() < 2){
+            return 0.0;
+        }
 		double phiDerivative = 0;
 
-		if (allShapes.size() > 1) { //from second step it is possible to calculate phi derivative
+        double phiDerivativeDipol = getPhiTrueDipolDerivative(point);
+
+        double phiDerivativeConv = 0;
+
+        for (List<PointWithHamma> points : flyingPointsWithHama.values()){
+            for (int i = 0; i < points.size()-1; i++) {
+                PointWithHamma pointWithHamma = points.get(i);
+                phiDerivativeConv += pointWithHamma.getHamma() * computeVj(point, pointWithHamma).multiply(computeV(pointWithHamma));
+            }
+        }
+
+        phiDerivative = phiDerivativeDipol - phiDerivativeConv;
+
+        return phiDerivative;
+
+
+		/*if (allShapes.size() > 1) { //from second step it is possible to calculate phi derivative
 			//todo move this to solve method for performance
 			List<PointWithHamma> derivativeContourPoints = new ArrayList<PointWithHamma>();
 
@@ -406,10 +538,32 @@ public class Solver {
 					phiDerivative -= pointWithHamma.getHamma() * computeVj(point, pointWithHamma).multiply(computeV(pointWithHamma));
 				}
 			}
-		}
-
-		return phiDerivative;
+		}           */
 	}
+
+    public double getPhiTrueDipolDerivative(Point point) {
+        double phi = point.getX() * cos(alpha) + point.getY() * sin(alpha);
+        double x = point.getX();
+        double y = point.getY();
+
+        for (Pair<PointWithHamma> dipol : derivativeDipols) {
+            double x1 = dipol.getFirstValue().getX();
+            double y1 = dipol.getFirstValue().getY();
+            double x2 = dipol.getSecondValue().getX();
+            double y2 = dipol.getSecondValue().getY();
+
+            phi += (dipol.getFirstValue().getHamma() / (2 * PI)) *
+                    ((y2 - y1) * (x - (x2 + x1) / 2) - (x2 - x1) * (y - (y2 + y1) / 2)) /
+                    (pow(x - (x2 + x1) / 2, 2) + pow(y - (y2 + y1) / 2, 2));
+        }
+
+        /*splitContour.add(splitPart);
+
+        splitPart = new ArrayList<PointWithHamma>();
+        splitPart.add(new PointWithHamma(pointOfSeparation, -sumHama + pointOfSeparation.getHamma()));
+*/
+        return phi;
+    }
 
 	private Map<PointWithHamma, List<PointWithHamma>> cloneMap(Map<PointWithHamma, List<PointWithHamma>> flyingPointsWithHama) {
 		Map<PointWithHamma, List<PointWithHamma>> toReturn = new HashMap<PointWithHamma, List<PointWithHamma>>();
@@ -481,83 +635,7 @@ public class Solver {
         return new Pair<Double>(toReturn, partialHama);
     }
 
-    public double getPhiDipol(Point point) {       //todo refactor to use two methods : compute for
-        double toReturn = point.getX() * cos(alpha) + point.getY() * sin(alpha);
 
-        Point firstStrangeValue = null;
-        Point secondStrangeValue = null;
-
-        double partialHama = 0.0;
-        int amountOfPointsOfSeparation = shape.getPointsOfSeparation().size();
-
-        Pair<Double> result = computeForFlyingPoints(0, point, 0, 0);
-        toReturn += result.getFirstValue();
-        partialHama += result.getSecondValue();
-
-        result = computeForContourPoints(partialHama, point, 0, shape.getAllPoints().size() / 4 - 1);
-        toReturn += result.getFirstValue();
-        partialHama += result.getSecondValue();
-
-        result = computeForFlyingPoints(0, point, 1, 1);
-        toReturn += result.getFirstValue();
-        partialHama += result.getSecondValue();
-
-        int middleIndex = shape.getAllPoints().size() / 4 + (shape.getAllPoints().size() / 4 / 2);
-
-        result = computeForContourPoints(partialHama, point, shape.getAllPoints().size() / 4, middleIndex);
-        toReturn += result.getFirstValue();
-        partialHama += result.getSecondValue();
-
-        double newHama = 0;
-        result = computeForFlyingPoints(0, point, 4, 5);
-        toReturn += result.getFirstValue();
-        newHama += result.getSecondValue();
-
-        result = computeForContourPoints(newHama, point, shape.getAllPoints().size() / 4 * 3, shape.getAllPoints().size() - 1);
-        toReturn += result.getFirstValue();
-        newHama += result.getSecondValue();
-
-        partialHama += newHama;
-
-        result = computeForContourPoints(partialHama, point, middleIndex, shape.getAllPoints().size() / 4 * 2);
-        toReturn += result.getFirstValue();
-        partialHama += result.getSecondValue();
-        partialHama = 0;
-
-        result = computeForFlyingPoints(0, point, 2, 2);
-        toReturn += result.getFirstValue();
-        partialHama += result.getSecondValue();
-
-        result = computeForContourPoints(partialHama, point, shape.getAllPoints().size() / 4 * 2, shape.getAllPoints().size() / 4 * 3);
-        toReturn += result.getFirstValue();
-        partialHama += result.getSecondValue();
-
-       /* for (int i = flyingPointsWithHama.size() - 2; i > 3; i -= amountOfPointsOfSeparation) {
-            PointWithHamma flyingPoint = flyingPointsWithHama.get(i);
-            partialHama += flyingPoint.getHamma();
-
-            if (i != flyingPointsWithHama.size() - 2) {
-                Point neighborPoint = flyingPointsWithHama.get(i - amountOfPointsOfSeparation);
-                firstStrangeValue = flyingPoint.minus(neighborPoint);
-            } else {
-                Point neighborPoint = shape.getListOfPoints().get(3);
-                firstStrangeValue = flyingPoint.minus(neighborPoint);
-            }
-
-            secondStrangeValue = point.minus(flyingPoint);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }           */
-
-        return toReturn;
-    }
 
     public double getPsi(Point point) {
         double toReturn = cos(alpha) * point.getY() - sin(alpha) * point.getX();
