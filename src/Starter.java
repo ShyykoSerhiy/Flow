@@ -12,7 +12,7 @@ import solver.Solver;
  * Time: 19:03
  */
 public class Starter extends PApplet {
-    private static final float COORDINATE_MULTIPLIER = 1f;
+    private static final float COORDINATE_MULTIPLIER = 3f;
     float zoom;
     // A vector to store the offset from the center
     PVector offset;
@@ -122,6 +122,9 @@ public class Starter extends PApplet {
     // Store the mouse and the previous offset
     public void mousePressed() {
         mouse = new PVector(mouseX, mouseY);
+        int mX = (int) ((mouseX - offset.x) / zoom);
+        int mY = (int) ((mouseY - offset.y) / zoom);
+        System.out.println(mX + " , " + mY + ": " +shapeDrawer.getPhi(mX, mY));
         poffset.set(offset);
     }
 

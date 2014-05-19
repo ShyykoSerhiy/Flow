@@ -38,13 +38,16 @@ public class ColorManagerDrawer {
         int top = this.top;
         Color color = colorManager.getMinimumColor();
         double value = colorManager.getMinimalValue();
-        for (int i = 0; i < ColorManager.COLOR_STEPS; i++) {
+        int step = ColorManager.COLOR_STEPS / 10;
+        Color colorStep = colorManager.getColorStep().multiply(step);
+        double valueStep = colorManager.getValueStep() * step;
+        for (int i = 0; i < ColorManager.COLOR_STEPS; i += step) {
             drawer.fill(color.getR(), color.getG(), color.getB());
             drawer.rect(left, top, SQUARE_SIZE, SQUARE_SIZE);
             drawer.text(DECIMAL_FORMAT.format(value), left + SQUARE_SIZE * 1.5f, top);
-            color = color.plus(colorManager.getColorStep());
+            color = color.plus(colorStep);
             top += SQUARE_SIZE;
-            value += colorManager.getValueStep();
+            value += valueStep;
         }
         drawer.text(DECIMAL_FORMAT.format(value), left + SQUARE_SIZE * 1.5f, top);
     }

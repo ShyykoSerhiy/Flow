@@ -130,7 +130,7 @@ public class Solver {
 		}
 		//splitting to dipols
 		splitContourToDipols();
-        //splitContourToDerivativeDipols();
+        splitContourToDerivativeDipols();
     }
 
 	private void splitContourToDipols(){
@@ -467,7 +467,7 @@ public class Solver {
         double phiDerivativeConv = 0;
 
         for (List<PointWithHamma> points : flyingPointsWithHama.values()){
-            for (int i = 0; i < points.size()-1; i++) {
+            for (int i = 0; i < points.size(); i++) {
                 PointWithHamma pointWithHamma = points.get(i);
                 phiDerivativeConv += pointWithHamma.getHamma() * computeVj(point, pointWithHamma).multiply(computeV(pointWithHamma));
             }
@@ -542,7 +542,7 @@ public class Solver {
 	}
 
     public double getPhiTrueDipolDerivative(Point point) {
-        double phi = point.getX() * cos(alpha) + point.getY() * sin(alpha);
+        double phi = 0;
         double x = point.getX();
         double y = point.getY();
 

@@ -6,7 +6,7 @@ package draw;
  * Time: 19:54
  */
 public class ColorManager {
-    public static final int COLOR_STEPS = 10;
+    public static final int COLOR_STEPS = 100;
 
     private double minimalValue;
     private double maximumValue;

@@ -89,7 +89,7 @@ public class ShapeDrawer {
     //todo move to another class
     private double[][] phiValues;
     private ColorManager colorManager;
-    private static final int POINT_STEP = 5;
+    private static final int POINT_STEP = 20;
 
     public void computePhi() {
         phiValues = new double[helper.getWidth()][helper.getHeight()];
@@ -110,8 +110,18 @@ public class ShapeDrawer {
             }
         }
         //colorManager = new ColorManager(minPhi, maxPhi, new Color(152, 255, 152), new Color(178, 34, 34));
-        colorManager = new ColorManager(3, -3, new Color(255, 255, 255), new Color(0, 0, 0));
+        colorManager = new ColorManager(5, -3, new Color(255, 255, 255), new Color(0, 0, 0));
+        //colorManager = new ColorManager(minPhi, maxPhi, new Color(255, 255, 255), new Color(0, 0, 0));
         colorManagerDrawer.setColorManager(colorManager);
+    }
+
+    public double getPhi(int mouseX, int mouseY){
+        if (mouseX >= phiValues.length || phiValues.length == 0 || mouseY >= phiValues[0].length ){
+            return Double.NaN;
+        }
+        mouseX = mouseX / POINT_STEP * POINT_STEP;
+        mouseY = mouseY / POINT_STEP * POINT_STEP;
+        return phiValues[mouseX][mouseY];
     }
 
     public void drawPhi() {
