@@ -573,70 +573,6 @@ public class Solver {
 		return toReturn;
 	}
 
-	public Pair<Double> computeForFlyingPoints(double partialHama, Point point, int firstFlyingPointNumber,
-                                               int numberOfLastPoint) {
-        Point firstStrangeValue = new Point(0, 0);
-        Point secondStrangeValue = new Point(0, 0);
-        double toReturn = 0;
-        List<PointWithHamma> flyingPoints = flyingPointsWithHama.get(shape.getPointsOfSeparation().get(firstFlyingPointNumber));
-
-        for (int i = firstFlyingPointNumber; i < flyingPoints.size(); i++) {
-            PointWithHamma flyingPoint = flyingPoints.get(i);
-            partialHama += flyingPoint.getHamma();
-
-            if (i + 1 < flyingPoints.size()) {
-                Point neighborPoint = flyingPoints.get(i + 1);
-                firstStrangeValue = neighborPoint.minus(flyingPoint);
-            } else {
-                Point neighborPoint = shape.getListOfPoints().get(numberOfLastPoint);
-                firstStrangeValue = neighborPoint.minus(flyingPoint);
-            }
-
-            secondStrangeValue = point.minus(flyingPoint);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }
-
-        return new Pair<Double>(toReturn, partialHama);
-    }
-
-    public Pair<Double> computeForContourPoints(double partialHama, Point point,
-                                                int firstPointNumber, int lastPointNumber) {
-        Point firstStrangeValue = new Point(0, 0);
-        Point secondStrangeValue = new Point(0, 0);
-        double toReturn = 0;
-
-        for (int i = firstPointNumber; i < lastPointNumber; i += 1) {
-            Point pointOnContour = shape.getAllPoints().get(i);
-            partialHama += shape.getAllPoints().get(i).getHamma();
-
-            Point neighborPoint = shape.getAllPoints().get(i + 1);
-            firstStrangeValue = neighborPoint.minus(pointOnContour);
-
-            secondStrangeValue = point.minus(pointOnContour);
-
-            double strangeR = Math.pow(secondStrangeValue.getX(), 2) + Math.pow(secondStrangeValue.getY(), 2);
-            strangeR = strangeR < DELTA ? DELTA : strangeR;
-
-            double strangeProd = (firstStrangeValue.getY() * secondStrangeValue.getX() - firstStrangeValue.getX() * secondStrangeValue.getY())
-                    / (strangeR * (2 * PI));
-            strangeProd *= partialHama;
-
-            toReturn += strangeProd;
-        }
-
-        return new Pair<Double>(toReturn, partialHama);
-    }
-
-
-
     public double getPsi(Point point) {
         double toReturn = cos(alpha) * point.getY() - sin(alpha) * point.getX();
 
@@ -691,55 +627,7 @@ public class Solver {
         return 0.001;
     }
 
-
-    private static List<Double> gaussElimination(List<List<Double>> matrix, List<Double> rightSide) {
-        // Gaussian elimination with partial pivoting
-        int size = rightSide.size();
-
-        for (int p = 0; p < size; p++) {
-            // find pivot row and swap
-            int max = p;
-            for (int i = p + 1; i < size; i++) {
-                if (abs(matrix.get(i).get(p)) > abs(matrix.get(max).get(p))) {
-                    max = i;
-                }
-            }
-            List<Double> temp = matrix.get(p);
-            matrix.set(p, matrix.get(max));
-            matrix.set(max, temp);
-            double t = rightSide.get(p);
-            rightSide.set(p, rightSide.get(max));
-            rightSide.set(max, t);
-
-            // singular or nearly singular
-            if (abs(matrix.get(p).get(p)) <= 1e-10) {
-                throw new RuntimeException("Matrix is singular or nearly singular");
-            }
-
-            // pivot within A and b
-            for (int i = p + 1; i < size; i++) {
-                double alpha = matrix.get(i).get(p) / matrix.get(p).get(p);
-                rightSide.set(i, rightSide.get(i) - alpha * rightSide.get(p));
-                for (int j = p; j < size; j++) {
-                    matrix.get(i).set(j, matrix.get(i).get(j) - alpha * matrix.get(p).get(j));
-                }
-            }
-        }
-
-        // back substitution
-        Double[] x = new Double[size];
-        for (int i = size - 1; i >= 0; i--) {
-            double sum = 0.0;
-            for (int j = i + 1; j < size; j++) {
-                sum += matrix.get(i).get(j) * x[j];
-            }
-            x[i] = (rightSide.get(i) - sum) / matrix.get(i).get(i);
-        }
-        return new ArrayList<Double>(Arrays.asList(x));
-    }
-
     public static final float EPS = 0.001f;
-
 
     private static List<Double> gaussMethod(List<List<Double>> matrix, List<Double> rightSide) {
         float[][] matrixA = new float[rightSide.size()][rightSide.size()];

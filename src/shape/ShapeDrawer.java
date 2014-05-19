@@ -6,7 +6,10 @@ import draw.Point;
 import processing.core.PApplet;
 import solver.Solver;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * User: shyyko
@@ -88,29 +91,51 @@ public class ShapeDrawer {
 
     //todo move to another class
     private double[][] phiValues;
+    private Color[][] phiColors;
     private ColorManager colorManager;
-    private static final int POINT_STEP = 20;
+    private static final int POINT_STEP = 5;
 
     public void computePhi() {
         phiValues = new double[helper.getWidth()][helper.getHeight()];
+        phiColors = new Color[helper.getWidth()][helper.getHeight()];
 
-        double maxPhi = Double.NEGATIVE_INFINITY;
-        double minPhi = Double.POSITIVE_INFINITY;
+        //double maxPhi = Double.NEGATIVE_INFINITY;
+        //double minPhi = Double.POSITIVE_INFINITY;
+        colorManager = new ColorManager(5, -3, new Color(255, 255, 255), new Color(0, 0, 0));
+        List<Thread> threads = new ArrayList<Thread>();
+        final AtomicInteger counter = new AtomicInteger(phiValues.length/POINT_STEP);
         for (int i = 0; i < phiValues.length; i += POINT_STEP) {
-            for (int j = 0; j < phiValues[i].length; j += POINT_STEP) {
-                Point point = helper.getCoordinatePoint(new Point(i, j));
-                double phi = solver.getCp(point);
-                if (phi < minPhi) {
-                    minPhi = phi;
+            final int finalI = i;
+            Thread thread = new Thread(new Runnable() {//
+                @Override
+                public void run() {
+                    for (int j = 0; j < phiValues[finalI].length; j += POINT_STEP) {
+                        Point point = helper.getCoordinatePoint(new Point(finalI, j));
+                        double phi = solver.getCp(point);
+                        /*if (phi < minPhi) {
+                            minPhi = phi;
+                        }
+                        if (phi > maxPhi) {
+                            maxPhi = phi;
+                        }*/
+                        phiValues[finalI][j] = phi;
+                        phiColors[finalI][j] = colorManager.getColor(phi);
+                    }
+                    System.out.println("Threads left :" + counter.decrementAndGet());
                 }
-                if (phi > maxPhi) {
-                    maxPhi = phi;
-                }
-                phiValues[i][j] = phi;
+            });
+            threads.add(thread);
+            thread.start();
+        }
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();//nothing to do here
             }
         }
+
         //colorManager = new ColorManager(minPhi, maxPhi, new Color(152, 255, 152), new Color(178, 34, 34));
-        colorManager = new ColorManager(5, -3, new Color(255, 255, 255), new Color(0, 0, 0));
         //colorManager = new ColorManager(minPhi, maxPhi, new Color(255, 255, 255), new Color(0, 0, 0));
         colorManagerDrawer.setColorManager(colorManager);
     }
@@ -128,7 +153,7 @@ public class ShapeDrawer {
         drawer.strokeWeight(POINT_STEP * 2);
         for (int i = 0; i < phiValues.length; i += POINT_STEP) {
             for (int j = 0; j < phiValues[i].length; j += POINT_STEP) {
-                Color color = colorManager.getColor(phiValues[i][j]);
+                Color color = phiColors[i][j]; //colorManager.getColor(phiValues[i][j]);
                 drawer.stroke(color.getR(), color.getG(), color.getB());
                 drawer.point((float) i, (float) j);
             }

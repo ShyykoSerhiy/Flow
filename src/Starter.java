@@ -12,7 +12,7 @@ import solver.Solver;
  * Time: 19:03
  */
 public class Starter extends PApplet {
-    private static final float COORDINATE_MULTIPLIER = 3f;
+    private static final float COORDINATE_MULTIPLIER = 1f;
     float zoom;
     // A vector to store the offset from the center
     PVector offset;
@@ -24,8 +24,8 @@ public class Starter extends PApplet {
     Shape shape;
     ShapeDrawer shapeDrawer;
     Solver solver;
-    final int width = 640;
-    final int height = 640;
+    final int width = 320;
+    final int height = 320;
     boolean toDrawPhi = true;
     boolean toDrawVectors = true;
     // Figure figure;
