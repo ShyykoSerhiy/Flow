@@ -1,14 +1,9 @@
-package shape;
+package com.github.shyykoserhiy.flow;
 
-import draw.*;
-import draw.Color;
-import draw.Point;
 import processing.core.PApplet;
-import solver.Solver;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**

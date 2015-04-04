@@ -1,9 +1,4 @@
-package solver;
-
-import draw.Point;
-import draw.PointWithHamma;
-import shape.ShShape;
-import shape.Shape;
+package com.github.shyykoserhiy.flow;
 
 import java.util.*;
 
@@ -754,14 +749,6 @@ public class Solver {
             normal = normal.multiply(-1);
             return newPoint.add(normal.multiply(shape.getDelta() - distanceToLine));
         }
-    }
-
-    public static void main(String[] args) {
-        Point firstPoint = new Point(2, 2);
-        Point secondPoint = new Point(1, 2);
-        Point newPoint = new Point(1.2f, 2.04f);
-        awaySega(firstPoint, secondPoint, newPoint, newPoint);
-
     }
 
     public static Point awaySega(Point startPoint, Point endPoint, Point oldPoint, Point newPoint) {

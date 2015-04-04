@@ -1,7 +1,4 @@
-package shape;
-
-import draw.Point;
-import draw.PointWithHamma;
+package com.github.shyykoserhiy.flow;
 
 import java.util.ArrayList;
 import java.util.Arrays;

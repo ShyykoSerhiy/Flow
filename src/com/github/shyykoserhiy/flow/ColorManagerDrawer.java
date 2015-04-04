@@ -1,8 +1,5 @@
-package shape;
+package com.github.shyykoserhiy.flow;
 
-import draw.Color;
-import draw.ColorManager;
-import draw.Helper;
 import processing.core.PApplet;
 
 import java.text.DecimalFormat;

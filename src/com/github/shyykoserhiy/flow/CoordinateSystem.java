@@ -1,3 +1,5 @@
+package com.github.shyykoserhiy.flow;
+
 import processing.core.PApplet;
 
 import java.text.DecimalFormat;

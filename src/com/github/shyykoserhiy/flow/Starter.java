@@ -1,10 +1,7 @@
-import draw.Helper;
+package com.github.shyykoserhiy.flow;
+
 import processing.core.PApplet;
 import processing.core.PVector;
-import shape.ShShape;
-import shape.Shape;
-import shape.ShapeDrawer;
-import solver.Solver;
 
 /**
  * User: shyyko
@@ -24,8 +21,8 @@ public class Starter extends PApplet {
     Shape shape;
     ShapeDrawer shapeDrawer;
     Solver solver;
-    final int width = 320;
-    final int height = 320;
+    final int width = 600;
+    final int height = 600;
     boolean toDrawPhi = true;
     boolean toDrawVectors = true;
     // Figure figure;
@@ -78,7 +75,7 @@ public class Starter extends PApplet {
                 "p: compute phi(or psi)\n" +
                 "l: show phi\n" +
                 "v: compute vectors\n" +
-                "b: draw vectors\n" +
+                "b:draw vectors\n" +
                 "drag mouse to pan", 10, 32);
         shapeDrawer.drawColorManagers();
     }
